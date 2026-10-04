@@ -4,11 +4,15 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 namespace ARInterior
 {
     /// <summary>
-    /// ARSpaceMeasurer: Bulletproof, crash-safe AR Tape Measure.
-    /// Safely handles camera references, floor raycasting, and dual-pin measurement.
+    /// ARSpaceMeasurer: Apple-style AR Tape Measure.
+    /// Compatible with Unity 6's New Input System.
     /// </summary>
     public class ARSpaceMeasurer : MonoBehaviour
     {
@@ -47,7 +51,6 @@ namespace ARInterior
 
             FindCamera();
 
-            // Safe LineRenderer setup
             if (lineRenderer == null)
             {
                 lineRenderer = GetComponent<LineRenderer>();
@@ -78,7 +81,7 @@ namespace ARInterior
             if (arCamera == null)
             {
                 FindCamera();
-                if (arCamera == null) return; // Prevent any null-reference crash
+                if (arCamera == null) return;
             }
 
             Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
@@ -93,18 +96,30 @@ namespace ARInterior
                 }
             }
 
-            // 2. Handle Touch / Click Input
+            // 2. Handle Touch / Click Input using Unity 6 New Input System
             bool tapDetected = false;
             Vector2 tapPosition = screenCenter;
 
-            #if UNITY_EDITOR
+            #if ENABLE_INPUT_SYSTEM
+            // Unity 6 New Input System (Mouse for Editor, Touchscreen for Mobile)
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                tapDetected = true;
+                tapPosition = Mouse.current.position.ReadValue();
+            }
+            else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            {
+                tapDetected = true;
+                tapPosition = Touchscreen.current.primaryTouch.position.ReadValue();
+            }
+            #else
+            // Legacy Input System Fallback
             if (Input.GetMouseButtonDown(0))
             {
                 tapDetected = true;
                 tapPosition = Input.mousePosition;
             }
-            #else
-            if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
             {
                 tapDetected = true;
                 tapPosition = Input.GetTouch(0).position;
