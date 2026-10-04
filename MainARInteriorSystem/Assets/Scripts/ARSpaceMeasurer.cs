@@ -7,9 +7,8 @@ using UnityEngine.XR.ARSubsystems;
 namespace ARInterior
 {
     /// <summary>
-    /// ARSpaceMeasurer: Apple-style AR Tape Measure.
-    /// Drops Pin A, stretches a line while moving the camera, and drops Pin B to measure space.
-    /// Works in both Mobile AR and Unity XR Simulation (Editor Play Mode).
+    /// ARSpaceMeasurer: Bulletproof, crash-safe AR Tape Measure.
+    /// Safely handles camera references, floor raycasting, and dual-pin measurement.
     /// </summary>
     public class ARSpaceMeasurer : MonoBehaviour
     {
@@ -17,6 +16,7 @@ namespace ARInterior
         [SerializeField] private ARRaycastManager raycastManager;
         [SerializeField] private LineRenderer lineRenderer;
         [SerializeField] private GameObject pinPrefab;
+        [SerializeField] private Camera arCamera;
 
         [Header("Live Measurement Stats (cm)")]
         public float currentDistanceCm = 0f;
@@ -33,6 +33,11 @@ namespace ARInterior
 
         public event Action<float, float> OnMeasurementLocked;
 
+        private void Awake()
+        {
+            FindCamera();
+        }
+
         private void Start()
         {
             if (raycastManager == null)
@@ -40,10 +45,16 @@ namespace ARInterior
                 raycastManager = GetComponent<ARRaycastManager>();
             }
 
-            // Setup LineRenderer for the tape measure line
+            FindCamera();
+
+            // Safe LineRenderer setup
             if (lineRenderer == null)
             {
-                lineRenderer = gameObject.AddComponent<LineRenderer>();
+                lineRenderer = GetComponent<LineRenderer>();
+                if (lineRenderer == null)
+                {
+                    lineRenderer = gameObject.AddComponent<LineRenderer>();
+                }
                 lineRenderer.startWidth = 0.02f;
                 lineRenderer.endWidth = 0.02f;
                 lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
@@ -53,12 +64,26 @@ namespace ARInterior
             }
         }
 
+        private void FindCamera()
+        {
+            if (arCamera == null)
+            {
+                if (Camera.main != null) arCamera = Camera.main;
+                else arCamera = FindObjectOfType<Camera>();
+            }
+        }
+
         private void Update()
         {
-            // Center of screen raycast for real-time tape stretching
+            if (arCamera == null)
+            {
+                FindCamera();
+                if (arCamera == null) return; // Prevent any null-reference crash
+            }
+
             Vector2 screenCenter = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
 
-            // 1. If currently measuring between Pin A and camera position
+            // 1. Live stretching while measuring
             if (isMeasuring && !isMeasurementLocked)
             {
                 Vector3 currentTargetPos;
@@ -68,7 +93,7 @@ namespace ARInterior
                 }
             }
 
-            // 2. Handle Tap Input (Touch on Mobile OR Mouse Click in Unity XR Simulation)
+            // 2. Handle Touch / Click Input
             bool tapDetected = false;
             Vector2 tapPosition = screenCenter;
 
@@ -99,19 +124,24 @@ namespace ARInterior
         private bool RaycastFloor(Vector2 screenPoint, out Vector3 hitPoint)
         {
             hitPoint = Vector3.zero;
+
+            // 1. ARCore Plane Raycast
             if (raycastManager != null && raycastManager.Raycast(screenPoint, hits, TrackableType.PlaneWithinPolygon))
             {
                 hitPoint = hits[0].pose.position;
                 return true;
             }
 
-            // Fallback for Editor simulation: raycast against physics colliders (floor)
-            Ray ray = Camera.main.ScreenPointToRay(screenPoint);
-            RaycastHit physicsHit;
-            if (Physics.Raycast(ray, out physicsHit, 15f))
+            // 2. Safe Physics Raycast for Editor XR Simulation
+            if (arCamera != null)
             {
-                hitPoint = physicsHit.point;
-                return true;
+                Ray ray = arCamera.ScreenPointToRay(screenPoint);
+                RaycastHit physicsHit;
+                if (Physics.Raycast(ray, out physicsHit, 20f))
+                {
+                    hitPoint = physicsHit.point;
+                    return true;
+                }
             }
 
             return false;
@@ -121,7 +151,6 @@ namespace ARInterior
         {
             if (!isMeasuring)
             {
-                // Step 1: Place Pin A
                 ResetMeasurement();
                 pointAPosition = position;
                 isMeasuring = true;
@@ -132,14 +161,16 @@ namespace ARInterior
                     pinAInstance = Instantiate(pinPrefab, pointAPosition, Quaternion.identity);
                 }
 
-                lineRenderer.positionCount = 2;
-                lineRenderer.SetPosition(0, pointAPosition);
-                lineRenderer.SetPosition(1, pointAPosition);
+                if (lineRenderer != null)
+                {
+                    lineRenderer.positionCount = 2;
+                    lineRenderer.SetPosition(0, pointAPosition);
+                    lineRenderer.SetPosition(1, pointAPosition);
+                }
                 Debug.Log("[AR MEASURE] Pin A set at: " + pointAPosition);
             }
             else if (isMeasuring && !isMeasurementLocked)
             {
-                // Step 2: Place Pin B and Lock Measurement
                 pointBPosition = position;
                 isMeasurementLocked = true;
 
@@ -149,10 +180,13 @@ namespace ARInterior
                 }
 
                 lockedWidthCm = currentDistanceCm;
-                lockedDepthCm = Mathf.Round(lockedWidthCm * 0.65f); // Estimate ergonomic depth ratio
+                lockedDepthCm = Mathf.Round(lockedWidthCm * 0.65f);
 
-                lineRenderer.SetPosition(0, pointAPosition);
-                lineRenderer.SetPosition(1, pointBPosition);
+                if (lineRenderer != null)
+                {
+                    lineRenderer.SetPosition(0, pointAPosition);
+                    lineRenderer.SetPosition(1, pointBPosition);
+                }
 
                 Debug.Log($"[AR MEASURE] Locked! Width: {lockedWidthCm} cm, Depth: {lockedDepthCm} cm");
                 OnMeasurementLocked?.Invoke(lockedWidthCm, lockedDepthCm);

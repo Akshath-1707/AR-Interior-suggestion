@@ -4,8 +4,8 @@ using UnityEngine;
 namespace ARInterior
 {
     /// <summary>
-    /// ARUIManager: Minimalist, clean on-screen UI overlay for testing in Unity and on mobile.
-    /// Provides the Apple-style HUD, Pin trigger, Lock Position button, and Furniture Spawner buttons.
+    /// ARUIManager: Crash-safe, bulletproof on-screen UI overlay for testing in Unity and on mobile.
+    /// Provides Apple-style HUD, Pin trigger, Lock Position button, and Furniture Spawner buttons.
     /// </summary>
     public class ARUIManager : MonoBehaviour
     {
@@ -14,7 +14,7 @@ namespace ARInterior
         [SerializeField] private FurnitureSpawner spawner;
         [SerializeField] private RecommendationApiClient apiClient;
 
-        [Header("Furniture Models (Assign your 3D models here if you have them)")]
+        [Header("Furniture Models (Optional Prefabs)")]
         [SerializeField] private GameObject sofa3DModel;
         [SerializeField] private GameObject chair3DModel;
         [SerializeField] private GameObject desk3DModel;
@@ -23,14 +23,19 @@ namespace ARInterior
 
         private void Start()
         {
-            if (measurer == null) measurer = FindObjectOfType<ARSpaceMeasurer>();
-            if (spawner == null) spawner = FindObjectOfType<FurnitureSpawner>();
-            if (apiClient == null) apiClient = FindObjectOfType<RecommendationApiClient>();
+            FindReferences();
 
             if (measurer != null)
             {
                 measurer.OnMeasurementLocked += HandleMeasurementComplete;
             }
+        }
+
+        private void FindReferences()
+        {
+            if (measurer == null) measurer = FindObjectOfType<ARSpaceMeasurer>();
+            if (spawner == null) spawner = FindObjectOfType<FurnitureSpawner>();
+            if (apiClient == null) apiClient = FindObjectOfType<RecommendationApiClient>();
         }
 
         private void HandleMeasurementComplete(float widthCm, float depthCm)
@@ -46,42 +51,48 @@ namespace ARInterior
 
         private void OnGUI()
         {
-            GUI.skin.label.fontSize = 16;
-            GUI.skin.button.fontSize = 15;
+            if (measurer == null || spawner == null)
+            {
+                FindReferences();
+                if (measurer == null) return; // Prevent any null-reference crash in OnGUI
+            }
 
-            // 1. Center Screen Crosshair / Reticle
+            GUI.skin.label.fontSize = 15;
+            GUI.skin.button.fontSize = 14;
+
+            // 1. Center Screen Crosshair
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
             GUI.Box(new Rect(cx - 5, cy - 5, 10, 10), "");
 
             // 2. Top Info Box (Measurement Status)
-            GUILayout.BeginArea(new Rect(20, 20, Screen.width - 40, 160));
+            GUILayout.BeginArea(new Rect(20, 20, Screen.width - 40, 150));
             GUILayout.BeginVertical("box");
 
             if (!measurer.isMeasuring && !measurer.isMeasurementLocked)
             {
-                GUILayout.Label("📏 <b>AR Tape Measure:</b> Aim camera at floor and click to set <b>Pin A</b>");
+                GUILayout.Label("📏 <b>AR Tape Measure:</b> Aim at floor and click to set <b>Pin A</b>");
             }
             else if (measurer.isMeasuring && !measurer.isMeasurementLocked)
             {
-                GUILayout.Label($"📏 <b>Measuring Distance:</b> <color=yellow>{measurer.currentDistanceCm} cm</color>");
-                GUILayout.Label("Walk or move phone to target location, then click to set <b>Pin B</b>");
+                GUILayout.Label($"📏 <b>Measuring:</b> <color=yellow>{measurer.currentDistanceCm} cm</color>");
+                GUILayout.Label("Move camera to target point, then click to set <b>Pin B</b>");
             }
             else if (measurer.isMeasurementLocked)
             {
                 GUILayout.Label($"🔒 <b>Space Measured:</b> <color=green>{measurer.lockedWidthCm} cm (W) × {measurer.lockedDepthCm} cm (D)</color>");
-                GUILayout.Label("Select recommended furniture below to place in your space:");
+                GUILayout.Label("Tap a button below to place furniture in this space:");
             }
 
             GUILayout.EndVertical();
             GUILayout.EndArea();
 
             // 3. Bottom Controls Area
-            float bottomY = Screen.height - 180;
-            GUILayout.BeginArea(new Rect(20, bottomY, Screen.width - 40, 160));
+            float bottomY = Screen.height - 170;
+            GUILayout.BeginArea(new Rect(20, bottomY, Screen.width - 40, 150));
             GUILayout.BeginVertical();
 
-            // Button Row: Reset Measurement & Lock Position
+            // Reset Tape & Lock Position Row
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("🔄 Reset Tape", GUILayout.Height(45)))
             {
@@ -98,10 +109,10 @@ namespace ARInterior
             }
             GUILayout.EndHorizontal();
 
-            // Furniture Placement Buttons (When Space is Measured)
+            // Placement Buttons
             if (measurer.isMeasurementLocked)
             {
-                GUILayout.Space(10);
+                GUILayout.Space(8);
                 GUILayout.BeginHorizontal();
 
                 if (GUILayout.Button("🛋️ Place Sofa", GUILayout.Height(45)))
