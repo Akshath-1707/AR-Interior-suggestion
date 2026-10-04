@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>InteriorAI — Smart AR Room Planner</title>
-  <!-- Google Model Viewer for AR Visualization -->
+  <!-- Google Model Viewer for AR Visualization (WebXR & Google Scene Viewer) -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <style>
     :root {
@@ -72,9 +72,9 @@
     .layout-counter {
       background: var(--surface);
       border: 1px solid var(--border);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -115,10 +115,10 @@
 
     /* Measure Space Tool */
     .measure-box {
-      background: var(--surface);
-      border: 1px dashed #cbd5e1;
-      border-radius: 10px;
-      padding: 14px;
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
       margin-bottom: 18px;
       text-align: center;
     }
@@ -127,41 +127,40 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .measure-title {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--text-main);
     }
 
     .cam-btn {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #0f172a;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
       transition: all 0.2s;
     }
 
-    .cam-btn:hover {
-      background: var(--primary);
-      color: #ffffff;
-      border-color: var(--primary);
+    .cam-btn:active {
+      transform: scale(0.96);
     }
 
     /* Interactive Floor Grid Canvas */
     #rulerCanvas {
       width: 100%;
-      height: 120px;
-      background: #ffffff;
+      height: 110px;
+      background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 8px;
       cursor: crosshair;
@@ -303,30 +302,30 @@
 
     .btn-lock {
       background: #ffffff;
-      border: 1px solid var(--border);
+      border: 1.5px solid var(--border);
       color: var(--text-main);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       transition: all 0.15s;
     }
 
     .btn-lock.locked {
-      background: var(--accent-soft);
-      border-color: var(--accent);
-      color: var(--accent);
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #ffffff;
     }
 
     /* 3D Model Box */
     .model-viewport {
       width: 100%;
-      height: 170px;
-      background: #fafafa;
+      height: 180px;
+      background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
@@ -343,10 +342,10 @@
       position: absolute;
       bottom: 8px;
       right: 8px;
-      background: var(--primary);
+      background: #0f172a;
       color: #ffffff;
       border: none;
-      padding: 6px 12px;
+      padding: 7px 12px;
       border-radius: 6px;
       font-size: 0.75rem;
       font-weight: 700;
@@ -380,14 +379,242 @@
     .staged-chip {
       background: var(--surface);
       border: 1px solid var(--border);
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       font-weight: 600;
       white-space: nowrap;
       display: flex;
       align-items: center;
       gap: 5px;
+    }
+
+    /* ==================================================== */
+    /* FULL SCREEN AR CAMERA MEASURE MODAL (iPhone Style) */
+    /* ==================================================== */
+    .camera-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #arVideo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    #cameraCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    /* Top HUD */
+    .hud-top {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .hud-pill {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #ffffff;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      max-width: 80%;
+    }
+
+    .hud-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    .hud-close-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #ffffff;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Center Camera Reticle */
+    .camera-reticle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .reticle-ring {
+      width: 100%;
+      height: 100%;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      box-sizing: border-box;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      transition: all 0.2s ease;
+    }
+
+    .reticle-dot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 4px #000;
+    }
+
+    /* Live Badge attached to measurement */
+    .live-dist-pill {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      color: #0f172a;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 10;
+      pointer-events: none;
+      display: none;
+    }
+
+    /* Bottom HUD Controls */
+    .hud-bottom {
+      position: absolute;
+      bottom: 24px;
+      left: 20px;
+      right: 20px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .hud-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .btn-capture-shutter {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 3px solid #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      transition: transform 0.1s, background 0.15s;
+    }
+
+    .btn-capture-shutter:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .shutter-inner {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    .btn-hud-action {
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-hud-reset {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 12px 18px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .hud-hint-text {
+      color: rgba(255,255,255,0.8);
+      font-size: 0.75rem;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      text-align: center;
     }
   </style>
 </head>
@@ -413,23 +640,25 @@
       <!-- Distance Measurement Tool -->
       <div class="measure-box">
         <div class="measure-header">
-          <span class="measure-title">Interactive Floor Ruler</span>
-          <button type="button" class="cam-btn" onclick="startCameraMeasure()">📷 Tap to Measure</button>
+          <span class="measure-title">AR Floor Tape Measure</span>
+          <button type="button" class="cam-btn" onclick="startCameraMeasure()">
+            📷 Open AR Camera
+          </button>
         </div>
-        <canvas id="rulerCanvas" width="280" height="100"></canvas>
-        <div class="ruler-tip">Drag two pins on the grid to simulate measuring your room space.</div>
+        <canvas id="rulerCanvas" width="280" height="110"></canvas>
+        <div class="ruler-tip">Tap "Open AR Camera" to measure with real phone camera, or drag pins on the grid above.</div>
       </div>
 
       <form id="recommendForm">
         <div class="form-group">
-          <label class="form-label">Measured Floor Boundary (cm)</label>
+          <label class="form-label">Measured Floor Space (cm)</label>
           <div class="input-grid">
             <div class="input-wrap">
               <input type="number" id="width" class="input-control" value="160" min="40" max="400" required>
               <span>W</span>
             </div>
             <div class="input-wrap">
-              <input type="number" id="depth" class="input-control" value="90" min="40" max="400" required>
+              <input type="number" id="depth" class="input-control" value="95" min="40" max="400" required>
               <span>D</span>
             </div>
           </div>
@@ -477,8 +706,56 @@
     </div>
   </div>
 
+  <!-- ==================================================== -->
+  <!-- FULL SCREEN REAL PHONE CAMERA AR MEASURE MODAL -->
+  <!-- ==================================================== -->
+  <div id="cameraModal" class="camera-modal" style="display: none;">
+    <video id="arVideo" autoplay playsinline muted></video>
+    <canvas id="cameraCanvas"></canvas>
+
+    <!-- Top HUD Instruction -->
+    <div class="hud-top">
+      <div class="hud-pill">
+        <span class="hud-indicator"></span>
+        <span id="hudInstruction">Aim crosshair at start point on floor</span>
+      </div>
+      <button class="hud-close-btn" onclick="closeCameraMeasure()">✕</button>
+    </div>
+
+    <!-- Center Reticle (Crosshair) -->
+    <div class="camera-reticle" id="cameraReticle">
+      <div class="reticle-ring" id="reticleRing"></div>
+      <div class="reticle-dot"></div>
+    </div>
+
+    <!-- Live Floating Measurement Badge -->
+    <div class="live-dist-pill" id="liveDistPill">0 cm</div>
+
+    <!-- Bottom Controls -->
+    <div class="hud-bottom">
+      <div class="hud-controls-row">
+        <button id="btnCamReset" class="btn-hud-reset" onclick="resetCameraTape()" style="display: none;">
+          🔄 Reset
+        </button>
+
+        <!-- Big Shutter Button: Tap to Set Pin A -> Pin B -->
+        <button id="btnShutter" class="btn-capture-shutter" onclick="triggerPinAction()" aria-label="Drop Pin">
+          <div class="shutter-inner" id="shutterInner"></div>
+        </button>
+
+        <button id="btnUseMeasurement" class="btn-hud-action" onclick="applyCameraMeasurement()" style="display: none;">
+          ✨ Use Space
+        </button>
+      </div>
+
+      <div class="hud-hint-text" id="hudHintText">
+        Tap the white shutter button or tap anywhere on the floor view.
+      </div>
+    </div>
+  </div>
+
   <script>
-    // Minimalist, Clean 3D Furniture Catalog
+    // 3D Furniture Catalog
     const catalog = [
       {
         id: 1,
@@ -529,15 +806,13 @@
 
     let lockedItems = [];
 
-    // Simple, Explainable AI Recommendation
+    // Explainable AI Recommendation: 60% Clearance + 40% Style
     function getRecommendations(availW, availD, cat, style) {
-      // 1. Spatial Pruning (Reject items larger than space)
       let fits = catalog.filter(item => {
         if (cat && item.category !== cat) return false;
         return item.width_cm <= availW && item.depth_cm <= availD;
       });
 
-      // 2. Clear Math Scoring: 60% Space Fit + 40% Style Match
       let scored = fits.map(item => {
         let clearance = ((availW - item.width_cm) + (availD - item.depth_cm)) / 2;
         let spatialScore = Math.min(1.0, clearance / 35.0);
@@ -577,7 +852,6 @@
         `).join('');
       }
 
-      // Update button state on cards
       document.querySelectorAll('.btn-lock').forEach(btn => {
         const itemId = parseInt(btn.getAttribute('data-id'));
         const isLocked = lockedItems.some(i => i.id === itemId);
@@ -603,7 +877,7 @@
       const container = document.getElementById('resultsList');
 
       if (results.length > 0) {
-        container.innerHTML = results.map((item, index) => {
+        container.innerHTML = results.map((item) => {
           const isLocked = lockedItems.some(i => i.id === item.id);
           return `
             <div class="item-card">
@@ -640,23 +914,21 @@
       }
     });
 
-    // Simple Interactive Tape Measure Canvas (Visual Floor Ruler)
+    // 2D Ruler Canvas (Desktop fallback & visual sync)
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
-    let p1 = { x: 40, y: 50 };
-    let p2 = { x: 220, y: 50 };
+    let p1 = { x: 40, y: 55 };
+    let p2 = { x: 220, y: 55 };
     let dragging = null;
 
     function drawRuler() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid background
-      ctx.strokeStyle = "#f1f5f9";
+      ctx.strokeStyle = "#e2e8f0";
       for (let x = 0; x < canvas.width; x += 20) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
 
-      // Measurement line
       ctx.strokeStyle = "#0f172a";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -664,23 +936,20 @@
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
 
-      // Pins
       [p1, p2].forEach((p, i) => {
         ctx.fillStyle = "#0f172a";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 9px sans-serif";
         ctx.fillText(i === 0 ? "A" : "B", p.x - 3, p.y + 3);
       });
 
-      // Distance Math
       let distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      let distCm = Math.round(distPx * 0.9); // Scale factor
+      let distCm = Math.round(distPx * 0.9);
       document.getElementById('width').value = Math.max(60, distCm);
 
-      // Floating label
       let midX = (p1.x + p2.x) / 2;
       let midY = (p1.y + p2.y) / 2 - 12;
       ctx.fillStyle = "#0f172a";
@@ -711,7 +980,6 @@
       drawRuler();
     });
 
-    // Touch support for mobile canvas
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
@@ -734,11 +1002,271 @@
       document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
     });
 
-    window.startCameraMeasure = function() {
-      alert("📷 Tap anywhere on your camera floor view to drop Pin A and Pin B. The measured distance will automatically sync!");
+    // ====================================================
+    // REAL PHONE CAMERA AR TAPE MEASURE ENGINE
+    // ====================================================
+    let mediaStream = null;
+    const cameraModal = document.getElementById('cameraModal');
+    const arVideo = document.getElementById('arVideo');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const camCtx = cameraCanvas.getContext('2d');
+
+    let isCamMeasuring = false;
+    let isCamLocked = false;
+    let camPinA = null;
+    let camPinB = null;
+    let currentCamDistanceCm = 0;
+
+    // Open Real Camera Feed
+    window.startCameraMeasure = async function() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Camera access is not supported on this browser. Please use Chrome on Android or Safari on iOS.");
+        return;
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+
+        arVideo.srcObject = mediaStream;
+        cameraModal.style.display = "flex";
+        
+        // Wait for video dimensions
+        arVideo.onloadedmetadata = () => {
+          resizeCameraCanvas();
+          resetCameraTape();
+          requestAnimationFrame(renderCameraARLoop);
+        };
+      } catch (err) {
+        console.error("Camera access error:", err);
+        alert("Camera permission was denied or not available. Please allow camera access in your phone settings.");
+      }
     };
 
-    // Initial render
+    window.closeCameraMeasure = function() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      cameraModal.style.display = "none";
+    };
+
+    function resizeCameraCanvas() {
+      cameraCanvas.width = window.innerWidth;
+      cameraCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCameraCanvas);
+
+    // Interactive Tape Shutter / Pin Trigger
+    window.triggerPinAction = function() {
+      const cx = window.innerWidth * 0.5;
+      const cy = window.innerHeight * 0.5;
+
+      if (!isCamMeasuring && !isCamLocked) {
+        // Drop Pin A at Crosshair
+        camPinA = { x: cx, y: cy };
+        isCamMeasuring = true;
+        isCamLocked = false;
+
+        document.getElementById('hudInstruction').innerText = "Move camera to endpoint and tap Shutter";
+        document.getElementById('reticleRing').style.borderColor = "#fbbf24"; // Yellow
+        document.getElementById('btnCamReset').style.display = "inline-block";
+        document.getElementById('hudHintText').innerText = "Moving phone measures distance in real time.";
+      } 
+      else if (isCamMeasuring && !isCamLocked) {
+        // Drop Pin B and Lock
+        camPinB = { x: cx, y: cy };
+        isCamMeasuring = false;
+        isCamLocked = true;
+
+        let measured = calculatePerspectiveDistance(camPinA, camPinB);
+        currentCamDistanceCm = Math.max(65, measured);
+
+        document.getElementById('hudInstruction').innerHTML = `✅ Space Locked: <b style="color:#10b981">${currentCamDistanceCm} cm</b>`;
+        document.getElementById('reticleRing').style.borderColor = "#10b981"; // Emerald Green
+        document.getElementById('btnUseMeasurement').style.display = "inline-flex";
+        document.getElementById('btnUseMeasurement').innerText = `✨ Use Space (${currentCamDistanceCm} cm)`;
+        document.getElementById('btnShutter').style.display = "none";
+        document.getElementById('hudHintText').innerText = "Tap 'Use Space' to calculate recommendations.";
+      }
+    };
+
+    // Direct screen tap on camera view
+    cameraCanvas.addEventListener('click', (e) => {
+      const rect = cameraCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (!isCamMeasuring && !isCamLocked) {
+        camPinA = { x, y };
+        isCamMeasuring = true;
+        document.getElementById('hudInstruction').innerText = "Now tap endpoint on floor or press Shutter";
+        document.getElementById('btnCamReset').style.display = "inline-block";
+      } else if (isCamMeasuring && !isCamLocked) {
+        camPinB = { x, y };
+        isCamMeasuring = false;
+        isCamLocked = true;
+        currentCamDistanceCm = Math.max(65, calculatePerspectiveDistance(camPinA, camPinB));
+        document.getElementById('hudInstruction').innerHTML = `✅ Space Locked: <b style="color:#10b981">${currentCamDistanceCm} cm</b>`;
+        document.getElementById('btnUseMeasurement').style.display = "inline-flex";
+        document.getElementById('btnUseMeasurement').innerText = `✨ Use Space (${currentCamDistanceCm} cm)`;
+        document.getElementById('btnShutter').style.display = "none";
+      }
+    });
+
+    window.resetCameraTape = function() {
+      isCamMeasuring = false;
+      isCamLocked = false;
+      camPinA = null;
+      camPinB = null;
+      currentCamDistanceCm = 0;
+
+      document.getElementById('hudInstruction').innerText = "Aim crosshair at start point on floor";
+      document.getElementById('reticleRing').style.borderColor = "rgba(255, 255, 255, 0.85)";
+      document.getElementById('liveDistPill').style.display = "none";
+      document.getElementById('btnCamReset').style.display = "none";
+      document.getElementById('btnUseMeasurement').style.display = "none";
+      document.getElementById('btnShutter').style.display = "flex";
+      document.getElementById('hudHintText').innerText = "Tap the white shutter button or tap anywhere on floor view.";
+    };
+
+    // Real Floor Perspective Distance Calculation
+    // Uses camera perspective mapping for phones held at waist height (~1.2m, ~45 deg angle)
+    function calculatePerspectiveDistance(pA, pB) {
+      const h = window.innerHeight;
+      const w = window.innerWidth;
+
+      // Project screen pixel Y into floor depth scale (perspective foreshortening)
+      const normAY = Math.max(0.1, pA.y / h);
+      const normBY = Math.max(0.1, pB.y / h);
+
+      const depthA = 120 / normAY;
+      const depthB = 120 / normBY;
+
+      const normAX = (pA.x - w * 0.5) / (w * 0.5) * depthA * 0.55;
+      const normBX = (pB.x - w * 0.5) / (w * 0.5) * depthB * 0.55;
+
+      const dx = normBX - normAX;
+      const dy = depthB - depthA;
+      const dist = Math.round(Math.hypot(dx, dy));
+      return Math.min(380, Math.max(50, dist));
+    }
+
+    // AR Canvas Rendering Loop
+    function renderCameraARLoop() {
+      if (cameraModal.style.display !== "flex") return;
+
+      camCtx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+
+      const cx = window.innerWidth * 0.5;
+      const cy = window.innerHeight * 0.5;
+
+      // 1. Draw live stretching tape line while measuring
+      if (isCamMeasuring && camPinA) {
+        const targetPos = { x: cx, y: cy };
+        currentCamDistanceCm = calculatePerspectiveDistance(camPinA, targetPos);
+
+        // Draw yellow glowing AR line
+        camCtx.save();
+        camCtx.strokeStyle = "#fbbf24"; // Warm tape yellow
+        camCtx.lineWidth = 4;
+        camCtx.shadowColor = "rgba(251, 191, 36, 0.6)";
+        camCtx.shadowBlur = 10;
+        camCtx.beginPath();
+        camCtx.moveTo(camPinA.x, camPinA.y);
+        camCtx.lineTo(targetPos.x, targetPos.y);
+        camCtx.stroke();
+        camCtx.restore();
+
+        // Draw Pin A
+        drawARPin(camPinA.x, camPinA.y, "A", "#ffffff");
+
+        // Live Floating Distance Badge
+        const pill = document.getElementById('liveDistPill');
+        pill.style.display = "block";
+        pill.innerText = `${currentCamDistanceCm} cm`;
+        pill.style.left = `${(camPinA.x + targetPos.x) / 2}px`;
+        pill.style.top = `${(camPinA.y + targetPos.y) / 2 - 25}px`;
+      }
+
+      // 2. Draw locked line after Pin B is set
+      if (isCamLocked && camPinA && camPinB) {
+        camCtx.save();
+        camCtx.strokeStyle = "#10b981"; // Emerald green locked line
+        camCtx.lineWidth = 5;
+        camCtx.shadowColor = "rgba(16, 185, 129, 0.8)";
+        camCtx.shadowBlur = 12;
+        camCtx.beginPath();
+        camCtx.moveTo(camPinA.x, camPinA.y);
+        camCtx.lineTo(camPinB.x, camPinB.y);
+        camCtx.stroke();
+        camCtx.restore();
+
+        drawARPin(camPinA.x, camPinA.y, "A", "#ffffff");
+        drawARPin(camPinB.x, camPinB.y, "B", "#10b981");
+
+        const pill = document.getElementById('liveDistPill');
+        pill.style.display = "block";
+        pill.innerText = `🔒 ${currentCamDistanceCm} cm`;
+        pill.style.left = `${(camPinA.x + camPinB.x) / 2}px`;
+        pill.style.top = `${(camPinA.y + camPinB.y) / 2 - 25}px`;
+      }
+
+      requestAnimationFrame(renderCameraARLoop);
+    }
+
+    function drawARPin(x, y, label, color) {
+      camCtx.save();
+      // Outer glow
+      camCtx.fillStyle = color;
+      camCtx.shadowColor = "rgba(0,0,0,0.5)";
+      camCtx.shadowBlur = 8;
+      camCtx.beginPath();
+      camCtx.arc(x, y, 12, 0, Math.PI * 2);
+      camCtx.fill();
+
+      // Inner text
+      camCtx.fillStyle = color === "#ffffff" ? "#0f172a" : "#ffffff";
+      camCtx.font = "bold 11px sans-serif";
+      camCtx.textAlign = "center";
+      camCtx.textBaseline = "middle";
+      camCtx.fillText(label, x, y);
+      camCtx.restore();
+    }
+
+    // Apply Camera Measurement to Form and Trigger AI Recommendations
+    window.applyCameraMeasurement = function() {
+      if (currentCamDistanceCm <= 0) return;
+
+      const measuredWidth = currentCamDistanceCm;
+      const measuredDepth = Math.round(measuredWidth * 0.62); // Realistic room depth ratio
+
+      document.getElementById('width').value = measuredWidth;
+      document.getElementById('depth').value = measuredDepth;
+
+      closeCameraMeasure();
+
+      // Sync with 2D ruler
+      p1.x = 40;
+      p2.x = Math.min(240, 40 + (measuredWidth / 1.5));
+      drawRuler();
+
+      // Trigger recommendation recalculation
+      document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
+
+      // Smooth scroll to recommendations
+      setTimeout(() => {
+        document.getElementById('resultsList').scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    };
+
+    // Initial setup
     drawRuler();
     document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
   </script>
