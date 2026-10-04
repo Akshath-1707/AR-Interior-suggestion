@@ -12,7 +12,8 @@ namespace ARInterior
 {
     /// <summary>
     /// ARSpaceMeasurer: Apple-style AR Tape Measure.
-    /// Compatible with Unity 6's New Input System.
+    /// Supports both Center Reticle Pinning (iPhone style) and direct Floor Clicking.
+    /// Features foolproof ground plane raycasting and zero-click protection.
     /// </summary>
     public class ARSpaceMeasurer : MonoBehaviour
     {
@@ -50,21 +51,7 @@ namespace ARInterior
             }
 
             FindCamera();
-
-            if (lineRenderer == null)
-            {
-                lineRenderer = GetComponent<LineRenderer>();
-                if (lineRenderer == null)
-                {
-                    lineRenderer = gameObject.AddComponent<LineRenderer>();
-                }
-                lineRenderer.startWidth = 0.02f;
-                lineRenderer.endWidth = 0.02f;
-                lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-                lineRenderer.startColor = Color.white;
-                lineRenderer.endColor = Color.yellow;
-                lineRenderer.positionCount = 0;
-            }
+            SetupLineRenderer();
         }
 
         private void FindCamera()
@@ -74,6 +61,35 @@ namespace ARInterior
                 if (Camera.main != null) arCamera = Camera.main;
                 else arCamera = FindObjectOfType<Camera>();
             }
+        }
+
+        private void SetupLineRenderer()
+        {
+            if (lineRenderer == null)
+            {
+                lineRenderer = GetComponent<LineRenderer>();
+                if (lineRenderer == null)
+                {
+                    lineRenderer = gameObject.AddComponent<LineRenderer>();
+                }
+            }
+
+            lineRenderer.useWorldSpace = true;
+            lineRenderer.startWidth = 0.015f; // 1.5 cm thick tape
+            lineRenderer.endWidth = 0.015f;
+            lineRenderer.alignment = LineAlignment.View;
+            lineRenderer.numCapVertices = 4;
+            lineRenderer.numCornerVertices = 4;
+
+            // Safe unlit shader
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+
+            lineRenderer.material = new Material(shader);
+            lineRenderer.startColor = Color.white;
+            lineRenderer.endColor = new Color(1f, 0.85f, 0.2f); // Warm yellow
+            lineRenderer.positionCount = 0;
         }
 
         private void Update()
@@ -89,8 +105,22 @@ namespace ARInterior
             // 1. Live stretching while measuring
             if (isMeasuring && !isMeasurementLocked)
             {
+                // In Editor, track mouse cursor; On mobile or when mouse idle, track screenCenter
+                Vector2 aimScreenPos = screenCenter;
+                #if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null)
+                {
+                    Vector2 mousePos = Mouse.current.position.ReadValue();
+                    // If mouse is within the Game view window
+                    if (mousePos.x >= 0 && mousePos.x <= Screen.width && mousePos.y >= 0 && mousePos.y <= Screen.height)
+                    {
+                        aimScreenPos = mousePos;
+                    }
+                }
+                #endif
+
                 Vector3 currentTargetPos;
-                if (RaycastFloor(screenCenter, out currentTargetPos))
+                if (RaycastFloor(aimScreenPos, out currentTargetPos))
                 {
                     UpdateLiveMeasurement(pointAPosition, currentTargetPos);
                 }
@@ -101,33 +131,37 @@ namespace ARInterior
             Vector2 tapPosition = screenCenter;
 
             #if ENABLE_INPUT_SYSTEM
-            // Unity 6 New Input System (Mouse for Editor, Touchscreen for Mobile)
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
-                tapDetected = true;
                 tapPosition = Mouse.current.position.ReadValue();
+                tapDetected = true;
             }
             else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
             {
-                tapDetected = true;
                 tapPosition = Touchscreen.current.primaryTouch.position.ReadValue();
+                tapDetected = true;
             }
             #else
-            // Legacy Input System Fallback
             if (Input.GetMouseButtonDown(0))
             {
-                tapDetected = true;
                 tapPosition = Input.mousePosition;
+                tapDetected = true;
             }
             else if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
             {
-                tapDetected = true;
                 tapPosition = Input.GetTouch(0).position;
+                tapDetected = true;
             }
             #endif
 
             if (tapDetected)
             {
+                // Ignore taps on UI buttons
+                if (ARUIManager.IsPositionOverUI(tapPosition))
+                {
+                    return;
+                }
+
                 Vector3 hitPosition;
                 if (RaycastFloor(tapPosition, out hitPosition))
                 {
@@ -136,25 +170,41 @@ namespace ARInterior
             }
         }
 
-        private bool RaycastFloor(Vector2 screenPoint, out Vector3 hitPoint)
+        /// <summary>
+        /// Triple-layer Floor Raycast:
+        /// 1. AR Foundation detected planes (ARCore / XR Simulation)
+        /// 2. 3D Physics Mesh colliders
+        /// 3. Infinite Ground Plane at Y = 0 (mathematical fallback so raycast NEVER fails)
+        /// </summary>
+        public bool RaycastFloor(Vector2 screenPoint, out Vector3 hitPoint)
         {
             hitPoint = Vector3.zero;
 
-            // 1. ARCore Plane Raycast
-            if (raycastManager != null && raycastManager.Raycast(screenPoint, hits, TrackableType.PlaneWithinPolygon))
+            // 1. AR Plane Raycast (ARCore / Simulation Planes)
+            if (raycastManager != null && raycastManager.Raycast(screenPoint, hits, TrackableType.PlaneWithinPolygon | TrackableType.PlaneWithinBounds))
             {
                 hitPoint = hits[0].pose.position;
                 return true;
             }
 
-            // 2. Safe Physics Raycast for Editor XR Simulation
             if (arCamera != null)
             {
                 Ray ray = arCamera.ScreenPointToRay(screenPoint);
+
+                // 2. Physics Raycast (XR Simulation Room Meshes)
                 RaycastHit physicsHit;
-                if (Physics.Raycast(ray, out physicsHit, 20f))
+                if (Physics.Raycast(ray, out physicsHit, 50f))
                 {
                     hitPoint = physicsHit.point;
+                    return true;
+                }
+
+                // 3. Fallback Ground Plane at Y = 0 (Guarantees raycast works in editor even with no colliders)
+                Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+                float enter;
+                if (groundPlane.Raycast(ray, out enter) && enter > 0.01f && enter < 50f)
+                {
+                    hitPoint = ray.GetPoint(enter);
                     return true;
                 }
             }
@@ -162,48 +212,71 @@ namespace ARInterior
             return false;
         }
 
+        /// <summary>
+        /// Drop a Pin at the current center screen reticle (iPhone Measure app style).
+        /// </summary>
+        public void DropPinAtReticle()
+        {
+            Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector3 hitPos;
+            if (RaycastFloor(center, out hitPos))
+            {
+                HandleMeasurementTap(hitPos);
+            }
+        }
+
         public void HandleMeasurementTap(Vector3 position)
         {
-            if (!isMeasuring)
+            if (!isMeasuring && !isMeasurementLocked)
             {
+                // Drop Pin A
                 ResetMeasurement();
                 pointAPosition = position;
                 isMeasuring = true;
                 isMeasurementLocked = false;
 
-                if (pinPrefab != null)
-                {
-                    pinAInstance = Instantiate(pinPrefab, pointAPosition, Quaternion.identity);
-                }
+                pinAInstance = CreatePinInstance(pointAPosition, Color.white);
 
                 if (lineRenderer != null)
                 {
                     lineRenderer.positionCount = 2;
-                    lineRenderer.SetPosition(0, pointAPosition);
-                    lineRenderer.SetPosition(1, pointAPosition);
+                    Vector3 elevated = pointAPosition + Vector3.up * 0.01f;
+                    lineRenderer.SetPosition(0, elevated);
+                    lineRenderer.SetPosition(1, elevated);
                 }
-                Debug.Log("[AR MEASURE] Pin A set at: " + pointAPosition);
+                Debug.Log($"[AR MEASURE] Pin A dropped at: {pointAPosition}");
             }
             else if (isMeasuring && !isMeasurementLocked)
             {
-                pointBPosition = position;
-                isMeasurementLocked = true;
+                // Drop Pin B and Lock
+                float distanceMeters = Vector3.Distance(pointAPosition, position);
+                float distanceCm = Mathf.Round(distanceMeters * 100f);
 
-                if (pinPrefab != null)
+                // Ignore accidental taps less than 8 cm from Pin A
+                if (distanceCm < 8f)
                 {
-                    pinBInstance = Instantiate(pinPrefab, pointBPosition, Quaternion.identity);
+                    Debug.Log($"[AR MEASURE] Ignored tap too close to Pin A ({distanceCm} cm). Move further away!");
+                    return;
                 }
 
-                lockedWidthCm = currentDistanceCm;
+                pointBPosition = position;
+                isMeasuring = false;
+                isMeasurementLocked = true;
+
+                pinBInstance = CreatePinInstance(pointBPosition, new Color(1f, 0.85f, 0.2f));
+
+                lockedWidthCm = distanceCm;
                 lockedDepthCm = Mathf.Round(lockedWidthCm * 0.65f);
+                currentDistanceCm = lockedWidthCm;
 
                 if (lineRenderer != null)
                 {
-                    lineRenderer.SetPosition(0, pointAPosition);
-                    lineRenderer.SetPosition(1, pointBPosition);
+                    lineRenderer.positionCount = 2;
+                    lineRenderer.SetPosition(0, pointAPosition + Vector3.up * 0.01f);
+                    lineRenderer.SetPosition(1, pointBPosition + Vector3.up * 0.01f);
                 }
 
-                Debug.Log($"[AR MEASURE] Locked! Width: {lockedWidthCm} cm, Depth: {lockedDepthCm} cm");
+                Debug.Log($"[AR MEASURE] Distance LOCKED: Width = {lockedWidthCm} cm, Depth = {lockedDepthCm} cm");
                 OnMeasurementLocked?.Invoke(lockedWidthCm, lockedDepthCm);
             }
         }
@@ -215,9 +288,37 @@ namespace ARInterior
 
             if (lineRenderer != null && lineRenderer.positionCount == 2)
             {
-                lineRenderer.SetPosition(0, start);
-                lineRenderer.SetPosition(1, current);
+                lineRenderer.SetPosition(0, start + Vector3.up * 0.01f);
+                lineRenderer.SetPosition(1, current + Vector3.up * 0.01f);
             }
+        }
+
+        private GameObject CreatePinInstance(Vector3 pos, Color pinColor)
+        {
+            if (pinPrefab != null)
+            {
+                return Instantiate(pinPrefab, pos, Quaternion.identity);
+            }
+
+            // Clean fallback visual pin: glowing small sphere elevated 2cm
+            GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.name = "AR_MeasurePin";
+            sphere.transform.position = pos + Vector3.up * 0.02f;
+            sphere.transform.localScale = new Vector3(0.06f, 0.06f, 0.06f);
+
+            // Destroy collider so it doesn't block future raycasts
+            Collider col = sphere.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+
+            Renderer ren = sphere.GetComponent<Renderer>();
+            if (ren != null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Unlit/Color");
+                Material mat = new Material(shader);
+                mat.color = pinColor;
+                ren.material = mat;
+            }
+            return sphere;
         }
 
         public void ResetMeasurement()
@@ -231,6 +332,8 @@ namespace ARInterior
             if (pinAInstance != null) Destroy(pinAInstance);
             if (pinBInstance != null) Destroy(pinBInstance);
             if (lineRenderer != null) lineRenderer.positionCount = 0;
+
+            Debug.Log("[AR MEASURE] Measurement reset. Ready for Pin A.");
         }
 
         public Vector3 GetMeasurementCenter()

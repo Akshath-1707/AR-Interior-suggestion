@@ -14,7 +14,7 @@ namespace ARInterior
         public GameObject currentActiveObject;
         public List<GameObject> lockedFurnitureObjects = new List<GameObject>();
 
-        [Header("Default Prefabs (Fallback / Testing)")]
+        [Header("Default Prefabs (Optional 3D Models)")]
         [SerializeField] private GameObject sofaPrefab;
         [SerializeField] private GameObject chairPrefab;
         [SerializeField] private GameObject deskPrefab;
@@ -24,20 +24,36 @@ namespace ARInterior
         /// </summary>
         public GameObject SpawnFurniture(GameObject prefab, Vector3 spawnPosition, Quaternion spawnRotation)
         {
+            // If there is an unlocked active object, replace it
             if (currentActiveObject != null && !lockedFurnitureObjects.Contains(currentActiveObject))
             {
                 Destroy(currentActiveObject);
+                currentActiveObject = null;
             }
 
             if (prefab == null)
             {
-                // Fallback cube if model prefab is unassigned
-                prefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                prefab.transform.localScale = new Vector3(1.2f, 0.7f, 0.7f); // Couch proportions
-            }
+                // Clean single fallback primitive
+                currentActiveObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                currentActiveObject.name = "AR_Furniture_Placeholder";
+                currentActiveObject.transform.position = spawnPosition + Vector3.up * 0.35f; // Sit on floor
+                currentActiveObject.transform.rotation = spawnRotation;
+                currentActiveObject.transform.localScale = new Vector3(1.4f, 0.7f, 0.8f); // Realistic couch scale
 
-            currentActiveObject = Instantiate(prefab, spawnPosition, spawnRotation);
-            currentActiveObject.name = prefab.name + "_AR";
+                Renderer ren = currentActiveObject.GetComponent<Renderer>();
+                if (ren != null)
+                {
+                    Shader s = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard") ?? Shader.Find("Sprites/Default");
+                    Material mat = new Material(s);
+                    mat.color = new Color(0.92f, 0.90f, 0.86f); // Warm neutral white
+                    ren.material = mat;
+                }
+            }
+            else
+            {
+                currentActiveObject = Instantiate(prefab, spawnPosition, spawnRotation);
+                currentActiveObject.name = prefab.name + "_AR";
+            }
 
             Debug.Log($"[FURNITURE SPAWNER] Spawned {currentActiveObject.name} at {spawnPosition}");
             return currentActiveObject;
@@ -67,7 +83,7 @@ namespace ARInterior
             }
 
             Debug.Log($"[FURNITURE SPAWNER] 🔒 Successfully LOCKED {currentActiveObject.name} in place! Total locked items: {lockedFurnitureObjects.Count}");
-            currentActiveObject = null; // Ready to place next furniture!
+            currentActiveObject = null; // Staged! Ready to place the next item!
         }
 
         /// <summary>
