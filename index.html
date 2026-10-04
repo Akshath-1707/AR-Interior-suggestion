@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AI Interior Suggestion System (WebAR)</title>
+  <!-- Load Google Model Viewer for Instant Mobile AR -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      padding: 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 700px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+      header h1 { font-size: 1.4rem; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: #0f172a;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+    }
+
+    .range-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #0f172a;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover { background: var(--accent-hover); }
+    .btn:active { transform: scale(0.98); }
+
+    .results-header {
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recommendation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .item-card {
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 170px;
+      gap: 15px;
+      align-items: center;
+    }
+
+    @media (max-width: 550px) {
+      .item-card { grid-template-columns: 1fr; }
+    }
+
+    .item-info h3 {
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .badge-high { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .badge-mid { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+
+    .specs {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .explanation {
+      font-size: 0.85rem;
+      color: var(--text);
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .viewer-container {
+      width: 100%;
+      height: 160px;
+      border-radius: 8px;
+      background: #000;
+      overflow: hidden;
+      position: relative;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      --poster-color: transparent;
+    }
+
+    .ar-button {
+      background-color: var(--accent);
+      border-radius: 4px;
+      border: none;
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #0f172a;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI Interior Suggestion System</h1>
+    <p>Spatial Space Analysis & AR Placement</p>
+  </header>
+
+  <div class="container">
+    <!-- Input Panel -->
+    <div class="card">
+      <form id="recommendForm">
+        <div class="form-group">
+          <label>Available Floor Space (cm)</label>
+          <div class="range-inputs">
+            <div>
+              <label style="font-size: 0.75rem;">Width (cm)</label>
+              <input type="number" id="width" class="form-control" value="130" min="40" max="500" required>
+            </div>
+            <div>
+              <label style="font-size: 0.75rem;">Depth (cm)</label>
+              <input type="number" id="depth" class="form-control" value="75" min="40" max="500" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="category">Furniture Category</label>
+          <select id="category" class="form-control">
+            <option value="desk">Desk</option>
+            <option value="chair">Chair</option>
+            <option value="sofa">Sofa</option>
+            <option value="table">Table</option>
+            <option value="shelf">Bookshelf / Storage</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="style">Preferred Style</label>
+          <select id="style" class="form-control">
+            <option value="minimalist">Minimalist</option>
+            <option value="modern">Modern</option>
+            <option value="scandinavian">Scandinavian</option>
+            <option value="industrial">Industrial</option>
+            <option value="classic">Classic</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="color">Preferred Color</label>
+          <select id="color" class="form-control">
+            <option value="wood">Wood</option>
+            <option value="white">White</option>
+            <option value="black">Black</option>
+            <option value="grey">Grey</option>
+            <option value="brown">Brown</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn">Analyze Space & Suggest</button>
+      </form>
+    </div>
+
+    <!-- Recommendations Output Panel -->
+    <div class="card">
+      <div class="results-header">
+        <h2>AI Recommendations</h2>
+        <span id="resultCount" style="font-size: 0.85rem; color: var(--text-muted);">0 results</span>
+      </div>
+
+      <div id="recommendationList" class="recommendation-list">
+        <div class="empty-state">
+          Enter room dimensions and tap <strong>Analyze Space & Suggest</strong> to see AI suggestions.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Embedded 20-Item Catalog for Offline & GitHub Pages Reliability
+    const catalog = [
+      { id: 1, name: "Compact Wooden Desk", category: "desk", width_cm: 100, depth_cm: 50, height_cm: 75, min_clearance_cm: 35, style: "minimalist", color: "wood", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 2, name: "Executive Study Desk", category: "desk", width_cm: 140, depth_cm: 70, height_cm: 76, min_clearance_cm: 45, style: "modern", color: "black", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 3, name: "Industrial Metal Desk", category: "desk", width_cm: 120, depth_cm: 60, height_cm: 75, min_clearance_cm: 40, style: "industrial", color: "black", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 4, name: "Nordic Writing Table", category: "desk", width_cm: 110, depth_cm: 55, height_cm: 74, min_clearance_cm: 35, style: "scandinavian", color: "white", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 5, name: "Foldable Wall Desk", category: "desk", width_cm: 80, depth_cm: 40, height_cm: 72, min_clearance_cm: 30, style: "minimalist", color: "white", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 6, name: "Ergonomic Office Chair", category: "chair", width_cm: 65, depth_cm: 65, height_cm: 95, min_clearance_cm: 30, style: "modern", color: "black", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 7, name: "Scandinavian Accent Chair", category: "chair", width_cm: 70, depth_cm: 75, height_cm: 82, min_clearance_cm: 35, style: "scandinavian", color: "grey", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 8, name: "Minimalist Wooden Chair", category: "chair", width_cm: 50, depth_cm: 50, height_cm: 85, min_clearance_cm: 25, style: "minimalist", color: "wood", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 9, name: "Classic Velvet Armchair", category: "chair", width_cm: 85, depth_cm: 85, height_cm: 90, min_clearance_cm: 40, style: "classic", color: "brown", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 10, name: "Compact Dining Chair", category: "chair", width_cm: 45, depth_cm: 50, height_cm: 88, min_clearance_cm: 25, style: "minimalist", color: "white", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 11, name: "Modern 2-Seater Sofa", category: "sofa", width_cm: 150, depth_cm: 85, height_cm: 80, min_clearance_cm: 50, style: "modern", color: "grey", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 12, name: "Compact Apartment Loveseat", category: "sofa", width_cm: 130, depth_cm: 75, height_cm: 78, min_clearance_cm: 45, style: "minimalist", color: "white", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 13, name: "Industrial Leather Couch", category: "sofa", width_cm: 180, depth_cm: 90, height_cm: 82, min_clearance_cm: 60, style: "industrial", color: "brown", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 14, name: "Nordic Minimalist Sofa", category: "sofa", width_cm: 160, depth_cm: 80, height_cm: 80, min_clearance_cm: 50, style: "scandinavian", color: "grey", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 15, name: "Minimalist Coffee Table", category: "table", width_cm: 90, depth_cm: 50, height_cm: 45, min_clearance_cm: 40, style: "minimalist", color: "wood", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 16, name: "Glass Modern Side Table", category: "table", width_cm: 50, depth_cm: 50, height_cm: 55, min_clearance_cm: 30, style: "modern", color: "black", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 17, name: "Nordic Round Coffee Table", category: "table", width_cm: 70, depth_cm: 70, height_cm: 42, min_clearance_cm: 35, style: "scandinavian", color: "white", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 18, name: "Industrial Wood Center Table", category: "table", width_cm: 110, depth_cm: 60, height_cm: 48, min_clearance_cm: 45, style: "industrial", color: "brown", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 19, name: "Vertical 4-Tier Bookshelf", category: "shelf", width_cm: 60, depth_cm: 30, height_cm: 150, min_clearance_cm: 30, style: "minimalist", color: "wood", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" },
+      { id: 20, name: "Modern Wide Display Unit", category: "shelf", width_cm: 120, depth_cm: 35, height_cm: 180, min_clearance_cm: 45, style: "modern", color: "black", model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb" }
+    ];
+
+    // Client-side implementation of our 2-Stage AI Recommendation Algorithm
+    function runAIRecommendation(availableWidth, availableDepth, category, preferredStyle, preferredColor) {
+      let candidates = catalog.filter(item => {
+        if (category && item.category !== category) return false;
+        // Hard Spatial Pruning
+        if (item.width_cm > availableWidth || item.depth_cm > availableDepth) return false;
+        return true;
+      });
+
+      let scored = candidates.map(item => {
+        let avgClearance = ((availableWidth - item.width_cm) + (availableDepth - item.depth_cm)) / 2;
+        let spatialScore = avgClearance < item.min_clearance_cm 
+          ? Math.max(0.2, (avgClearance / item.min_clearance_cm) * 0.7) 
+          : 1.0;
+
+        let styleScore = (item.style === preferredStyle) ? 1.0 : 0.3;
+        let colorScore = (item.color === preferredColor) ? 1.0 : 0.3;
+
+        let finalScore = (0.50 * spatialScore) + (0.30 * styleScore) + (0.20 * colorScore);
+        let matchPct = Math.round(finalScore * 100);
+
+        let fitStatus = avgClearance >= item.min_clearance_cm 
+          ? "Optimal Fit (Comfortable Walkway)" 
+          : "Tight Fit (Limited Walkway)";
+
+        return {
+          ...item,
+          match_score: matchPct,
+          explanation: `${fitStatus}. Walkway clearance: ${Math.round(avgClearance)}cm. Style match: ${styleScore >= 0.8 ? 'High' : 'Moderate'}.`
+        };
+      });
+
+      scored.sort((a, b) => b.match_score - a.match_score);
+      return scored.slice(0, 3);
+    }
+
+    document.getElementById('recommendForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const width = parseFloat(document.getElementById('width').value);
+      const depth = parseFloat(document.getElementById('depth').value);
+      const category = document.getElementById('category').value;
+      const style = document.getElementById('style').value;
+      const color = document.getElementById('color').value;
+
+      const recommendations = runAIRecommendation(width, depth, category, style, color);
+      const listContainer = document.getElementById('recommendationList');
+
+      if (recommendations.length > 0) {
+        document.getElementById('resultCount').innerText = `${recommendations.length} recommendations`;
+        listContainer.innerHTML = '';
+
+        recommendations.forEach((item, index) => {
+          const badgeClass = item.match_score >= 80 ? 'badge-high' : 'badge-mid';
+          const itemHtml = `
+            <div class="item-card">
+              <div class="item-info">
+                <span class="badge ${badgeClass}">Match Score: ${item.match_score}%</span>
+                <h3>#${index + 1} ${item.name}</h3>
+                <div class="specs">
+                  <strong>Dimensions:</strong> ${item.width_cm}cm (W) × ${item.depth_cm}cm (D) × ${item.height_cm}cm (H)<br>
+                  <strong>Style:</strong> ${item.style} | <strong>Color:</strong> ${item.color}
+                </div>
+                <div class="explanation">
+                  💡 ${item.explanation}
+                </div>
+              </div>
+
+              <div class="viewer-container">
+                <model-viewer 
+                  src="${item.model_url}" 
+                  alt="${item.name}" 
+                  ar 
+                  ar-modes="webxr scene-viewer quick-look" 
+                  camera-controls 
+                  shadow-intensity="1" 
+                  auto-rotate>
+                  <button slot="ar-button" class="ar-button">📱 VIEW IN AR</button>
+                </model-viewer>
+              </div>
+            </div>
+          `;
+          listContainer.innerHTML += itemHtml;
+        });
+      } else {
+        document.getElementById('resultCount').innerText = '0 results';
+        listContainer.innerHTML = '<div class="empty-state">No furniture in the catalog fits within these exact space bounds. Try increasing room width or depth!</div>';
+      }
+    });
+
+    // Auto-trigger once on load
+    document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
+  </script>
+</body>
+</html>

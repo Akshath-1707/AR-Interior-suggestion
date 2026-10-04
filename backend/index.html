@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interior Furniture Recommendation System</title>
+  <!-- Load Google Model Viewer for 3D/AR Preview -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      max-width: 800px;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 850px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: #0f172a;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+    }
+
+    .range-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #0f172a;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .results-header {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recommendation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .item-card {
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 15px;
+      align-items: center;
+    }
+
+    @media (max-width: 600px) {
+      .item-card { grid-template-columns: 1fr; }
+    }
+
+    .item-info h3 {
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .badge-high { background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .badge-mid { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+
+    .specs {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .explanation {
+      font-size: 0.85rem;
+      color: var(--text);
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .viewer-container {
+      width: 100%;
+      height: 160px;
+      border-radius: 8px;
+      background: #000;
+      overflow: hidden;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      --poster-color: transparent;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AI Interior Furniture Recommendation</h1>
+    <p>Measure your room space $\rightarrow$ AI analyzes spatial clearance & style compatibility $\rightarrow$ Preview in 3D / AR</p>
+  </header>
+
+  <div class="container">
+    <!-- Left Input Panel -->
+    <div class="card">
+      <form id="recommendForm">
+        <div class="form-group">
+          <label>Available Floor Space (cm)</label>
+          <div class="range-inputs">
+            <div>
+              <label style="font-size: 0.75rem;">Width (cm)</label>
+              <input type="number" id="width" class="form-control" value="130" min="40" max="500" required>
+            </div>
+            <div>
+              <label style="font-size: 0.75rem;">Depth (cm)</label>
+              <input type="number" id="depth" class="form-control" value="75" min="40" max="500" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="category">Furniture Category</label>
+          <select id="category" class="form-control">
+            <option value="desk">Desk</option>
+            <option value="chair">Chair</option>
+            <option value="sofa">Sofa</option>
+            <option value="table">Table</option>
+            <option value="shelf">Bookshelf / Unit</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="style">Preferred Style</label>
+          <select id="style" class="form-control">
+            <option value="minimalist">Minimalist</option>
+            <option value="modern">Modern</option>
+            <option value="scandinavian">Scandinavian</option>
+            <option value="industrial">Industrial</option>
+            <option value="classic">Classic</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="color">Preferred Color</label>
+          <select id="color" class="form-control">
+            <option value="wood">Wood</option>
+            <option value="white">White</option>
+            <option value="black">Black</option>
+            <option value="grey">Grey</option>
+            <option value="brown">Brown</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn">Analyze Space & Recommend</button>
+      </form>
+    </div>
+
+    <!-- Right Recommendation Results Panel -->
+    <div class="card">
+      <div class="results-header">
+        <h2>AI Recommendations</h2>
+        <span id="resultCount" style="font-size: 0.9rem; color: var(--text-muted);">0 results</span>
+      </div>
+
+      <div id="recommendationList" class="recommendation-list">
+        <div class="empty-state">
+          Enter room dimensions on the left and click <strong>Analyze Space & Recommend</strong> to view AI suggestions.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('recommendForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const payload = {
+        available_width_cm: parseFloat(document.getElementById('width').value),
+        available_depth_cm: parseFloat(document.getElementById('depth').value),
+        category: document.getElementById('category').value,
+        preferred_style: document.getElementById('style').value,
+        preferred_color: document.getElementById('color').value,
+        top_n: 3
+      };
+
+      const listContainer = document.getElementById('recommendationList');
+      listContainer.innerHTML = '<div class="empty-state">Running AI spatial clearance & multi-criteria scoring model...</div>';
+
+      try {
+        const response = await fetch('/api/v1/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success' && data.recommendations.length > 0) {
+          document.getElementById('resultCount').innerText = `${data.count} matches found`;
+          listContainer.innerHTML = '';
+
+          data.recommendations.forEach((item, index) => {
+            const badgeClass = item.match_score >= 80 ? 'badge-high' : 'badge-mid';
+            
+            // Sample fallback 3D model CDN for interactive web 3D preview
+            const fallbackModelUrl = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb";
+
+            const itemHtml = `
+              <div class="item-card">
+                <div class="item-info">
+                  <span class="badge ${badgeClass}">Match Score: ${item.match_score}%</span>
+                  <h3>#${index + 1} ${item.name}</h3>
+                  <div class="specs">
+                    <strong>Dimensions:</strong> ${item.dimensions.width_cm}cm (W) × ${item.dimensions.depth_cm}cm (D) × ${item.dimensions.height_cm}cm (H)<br>
+                    <strong>Style:</strong> ${item.style} | <strong>Color:</strong> ${item.color}
+                  </div>
+                  <div class="explanation">
+                    💡 ${item.explanation}
+                  </div>
+                </div>
+
+                <div class="viewer-container">
+                  <model-viewer 
+                    src="${fallbackModelUrl}" 
+                    alt="${item.name}" 
+                    ar 
+                    ar-modes="webxr scene-viewer quick-look" 
+                    camera-controls 
+                    shadow-intensity="1" 
+                    auto-rotate>
+                  </model-viewer>
+                </div>
+              </div>
+            `;
+            listContainer.innerHTML += itemHtml;
+          });
+        } else {
+          document.getElementById('resultCount').innerText = '0 results';
+          listContainer.innerHTML = '<div class="empty-state">No furniture in the catalog fits within these exact space bounds. Try increasing room width or depth!</div>';
+        }
+      } catch (err) {
+        listContainer.innerHTML = `<div class="empty-state" style="color: #ef4444;">Error connecting to AI server: ${err.message}</div>`;
+      }
+    });
+
+    // Auto trigger on page load
+    document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
+  </script>
+</body>
+</html>

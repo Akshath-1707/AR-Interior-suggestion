@@ -1,0 +1,21 @@
+id,name,category,width_cm,depth_cm,height_cm,min_clearance_cm,style,color,price_tier,model_filename
+1,Compact Wooden Desk,desk,100,50,75,35,minimalist,wood,budget,desk_compact_01.glb
+2,Executive Study Desk,desk,140,70,76,45,modern,black,premium,desk_executive_02.glb
+3,Industrial Metal Desk,desk,120,60,75,40,industrial,black,mid,desk_industrial_03.glb
+4,Nordic Writing Table,desk,110,55,74,35,scandinavian,white,mid,desk_nordic_04.glb
+5,Foldable Wall Desk,desk,80,40,72,30,minimalist,white,budget,desk_wall_05.glb
+6,Ergonomic Office Chair,chair,65,65,95,30,modern,black,mid,chair_office_01.glb
+7,Scandinavian Accent Chair,chair,70,75,82,35,scandinavian,grey,mid,chair_accent_02.glb
+8,Minimalist Wooden Chair,chair,50,50,85,25,minimalist,wood,budget,chair_wooden_03.glb
+9,Classic Velvet Armchair,chair,85,85,90,40,classic,brown,premium,chair_armchair_04.glb
+10,Compact Dining Chair,chair,45,50,88,25,minimalist,white,budget,chair_dining_05.glb
+11,Modern 2-Seater Sofa,sofa,150,85,80,50,modern,grey,mid,sofa_2seater_01.glb
+12,Compact Apartment Loveseat,sofa,130,75,78,45,minimalist,white,budget,sofa_loveseat_02.glb
+13,Industrial Leather Couch,sofa,180,90,82,60,industrial,brown,premium,sofa_leather_03.glb
+14,Nordic Minimalist Sofa,sofa,160,80,80,50,scandinavian,grey,mid,sofa_nordic_04.glb
+15,Minimalist Coffee Table,table,90,50,45,40,minimalist,wood,budget,table_coffee_01.glb
+16,Glass Modern Side Table,table,50,50,55,30,modern,black,mid,table_side_02.glb
+17,Nordic Round Coffee Table,table,70,70,42,35,scandinavian,white,budget,table_round_03.glb
+18,Industrial Wood Center Table,table,110,60,48,45,industrial,brown,mid,table_center_04.glb
+19,Vertical 4-Tier Bookshelf,shelf,60,30,150,30,minimalist,wood,budget,shelf_bookshelf_01.glb
+20,Modern Wide Display Unit,shelf,120,35,180,45,modern,black,premium,shelf_display_02.glb

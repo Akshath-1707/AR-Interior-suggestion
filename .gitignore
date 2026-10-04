@@ -1,0 +1,33 @@
+# Unity generated folders
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Unity backup folders & large binaries
+ARInteriorSystem_BackUpThisFolder_ButDontShipItWithYourGame/
+*.apk
+*.aab
+
+# VS Code / Visual Studio
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.unityproj
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# OS generated
+.DS_Store
+Thumbs.db
