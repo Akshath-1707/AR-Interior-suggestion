@@ -77,11 +77,9 @@ namespace ARInterior
         {
             List<SimpleRecommendation> catalog = new List<SimpleRecommendation>
             {
-                new SimpleRecommendation { id = 1, name = "Velvet Modern Sofa", category = "sofa", width_cm = 150, depth_cm = 85 },
-                new SimpleRecommendation { id = 2, name = "Minimalist Wood Loveseat", category = "sofa", width_cm = 130, depth_cm = 75 },
-                new SimpleRecommendation { id = 3, name = "Scandinavian Armchair", category = "chair", width_cm = 75, depth_cm = 70 },
-                new SimpleRecommendation { id = 4, name = "Modern Dining Chair", category = "chair", width_cm = 55, depth_cm = 55 },
-                new SimpleRecommendation { id = 5, name = "Compact Study Desk", category = "desk", width_cm = 110, depth_cm = 55 }
+                new SimpleRecommendation { id = 1, name = "Modern Living Room Couch", category = "sofa", width_cm = 180, depth_cm = 85 },
+                new SimpleRecommendation { id = 2, name = "Ergonomic Office Chair", category = "chair", width_cm = 65, depth_cm = 65 },
+                new SimpleRecommendation { id = 3, name = "Adjustable Workstation Desk", category = "desk", width_cm = 135, depth_cm = 65 }
             };
 
             List<SimpleRecommendation> fitting = new List<SimpleRecommendation>();

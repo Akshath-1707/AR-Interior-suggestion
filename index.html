@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>InteriorAI — Smart AR Room Planner</title>
   
-  <!-- Three.js for Real-Time 3D Metric AR & Procedural Rendering -->
+  <!-- Three.js & GLTFLoader for True 1:1 Metric 3D Furniture Rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Google Model Viewer for AR Scene Viewer Fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- Google Model Viewer for AR QuickLook / Scene Viewer -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
   <style>
@@ -285,6 +286,18 @@
       margin-bottom: 6px;
     }
 
+    .score-badge.cramped {
+      background: #fef3c7;
+      color: #d97706;
+      border-color: #fde68a;
+    }
+
+    .score-badge.oversized {
+      background: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+    }
+
     .item-name {
       font-size: 1.05rem;
       font-weight: 700;
@@ -295,20 +308,29 @@
     .item-dimensions {
       font-size: 0.8rem;
       color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .item-explanation {
+      font-size: 0.75rem;
+      color: #475569;
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border-left: 3px solid #10b981;
       margin-bottom: 10px;
     }
 
     .item-actions {
       display: flex;
       gap: 8px;
-      margin-top: 12px;
     }
 
     .btn-lock {
       background: #ffffff;
       border: 1.5px solid var(--border);
       color: var(--text-main);
-      padding: 9px 14px;
+      padding: 8px 14px;
       border-radius: 8px;
       font-size: 0.82rem;
       font-weight: 700;
@@ -394,7 +416,7 @@
     }
 
     /* ==================================================== */
-    /* FULL SCREEN AR VIEW (A -> B -> C -> D DRAWING)       */
+    /* FULL SCREEN AR VIEW (A -> B -> C -> D BOUNDARY)      */
     /* ==================================================== */
     #arViewContainer {
       position: fixed;
@@ -430,7 +452,7 @@
       pointer-events: auto;
     }
 
-    /* Top HUD Instruction & Progress Pill */
+    /* Top HUD Instruction Pill with 4 Progress Dots */
     .ar-hud-top {
       position: absolute;
       top: 18px;
@@ -588,7 +610,7 @@
       display: none;
       width: 90%;
       max-width: 440px;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255,255,255,0.2);
@@ -678,7 +700,7 @@
       width: 68px;
       height: 68px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 3px solid rgba(255, 255, 255, 0.6);
@@ -724,7 +746,7 @@
       font-size: 0.72rem;
       font-weight: 700;
       text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-      max-width: 75px;
+      max-width: 80px;
       text-align: center;
       white-space: nowrap;
       overflow: hidden;
@@ -760,7 +782,7 @@
           </button>
         </div>
         <canvas id="rulerCanvas" width="280" height="140"></canvas>
-        <div class="ruler-tip">Tap points A → B → C → D on floor. Boundary & 3D furniture stay anchored in physical room!</div>
+        <div class="ruler-tip">Measure points A → B → C → D on floor. The 3 available models will be precisely recommended and scaled!</div>
       </div>
 
       <form id="recommendForm">
@@ -768,11 +790,11 @@
           <label class="form-label">Measured Floor Space (cm)</label>
           <div class="input-grid">
             <div class="input-wrap">
-              <input type="number" id="width" class="input-control" value="160" min="40" max="400" required>
+              <input type="number" id="width" class="input-control" value="200" min="50" max="400" required>
               <span>W</span>
             </div>
             <div class="input-wrap">
-              <input type="number" id="depth" class="input-control" value="95" min="40" max="400" required>
+              <input type="number" id="depth" class="input-control" value="120" min="50" max="400" required>
               <span>D</span>
             </div>
           </div>
@@ -781,22 +803,14 @@
         <div class="form-group">
           <label class="form-label" for="category">Furniture Type</label>
           <select id="category" class="input-control">
-            <option value="sofa">Sofa / Loveseat</option>
-            <option value="chair">Chairs & Armchairs</option>
-            <option value="desk">Desks & Tables</option>
+            <option value="">All Available Categories</option>
+            <option value="sofa">Sofa / Couch (180 × 85 cm)</option>
+            <option value="chair">Office Chair (65 × 65 cm)</option>
+            <option value="desk">Adjustable Desk (135 × 65 cm)</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="style">Design Style</label>
-          <select id="style" class="input-control">
-            <option value="modern">Modern</option>
-            <option value="minimalist">Minimalist</option>
-            <option value="classic">Classic</option>
-          </select>
-        </div>
-
-        <button type="submit" class="btn-submit">Find Matching Furniture</button>
+        <button type="submit" class="btn-submit">Calculate Spatial Recommendations</button>
       </form>
     </div>
 
@@ -842,7 +856,7 @@
     </div>
 
     <!-- Live Dimension Pill -->
-    <div class="ar-floating-dim" id="arLiveDim">160 cm</div>
+    <div class="ar-floating-dim" id="arLiveDim">180 cm</div>
 
     <!-- Bottom Camera Controls & Snapchat Filters -->
     <div class="ar-camera-bottom">
@@ -860,8 +874,8 @@
       <!-- 2. Active Placed 3D Furniture Toolbar (Once Locked) -->
       <div class="ar-furniture-toolbar" id="arFurnitureToolbar">
         <div class="toolbar-info">
-          <div class="toolbar-title" id="tbFurnitureTitle">🛋️ Velvet Sofa</div>
-          <div class="toolbar-sub" id="tbFurnitureSub">Fits measured boundary (22 cm clearance)</div>
+          <div class="toolbar-title" id="tbFurnitureTitle">🛋️ Modern Couch</div>
+          <div class="toolbar-sub" id="tbFurnitureSub">Fits measured boundary (25 cm clearance)</div>
         </div>
         <div class="toolbar-actions">
           <button class="btn-ar-lock" id="btnLockInAR" onclick="toggleLockActiveARFurniture()">
@@ -879,96 +893,129 @@
   </div>
 
   <script>
-    // 3D Furniture Catalog
+    // ====================================================
+    // FOCUS ON USER'S 3 AVAILABLE MODELS WITH ACCURATE SIZES
+    // ====================================================
     const catalog = [
       {
         id: 1,
-        name: "Velvet Living Room Sofa",
-        short_name: "Velvet Sofa",
+        name: "Modern Living Room Couch",
+        short_name: "Modern Couch",
         icon: "🛋️",
         category: "sofa",
-        width_cm: 155,
+        width_cm: 180,
         depth_cm: 85,
         height_cm: 75,
-        color: 0x1e3a8a, // Rich Navy Velvet
-        style: "modern",
-        model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb"
+        model_url: "models/couch.glb",
+        description: "Full-size modern living room sofa with deep comfort seating."
       },
       {
         id: 2,
-        name: "Scandinavian Wood Loveseat",
-        short_name: "Wood Loveseat",
-        icon: "🪑",
-        category: "sofa",
-        width_cm: 130,
-        depth_cm: 75,
-        height_cm: 72,
-        color: 0xd97706, // Warm Amber Wood/Fabric
-        style: "minimalist",
-        model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenWoodLeatherSofa/glTF-Binary/SheenWoodLeatherSofa.glb"
-      },
-      {
-        id: 3,
-        name: "Modern Minimalist Dining Chair",
-        short_name: "Dining Chair",
+        name: "Ergonomic Office Chair",
+        short_name: "Office Chair",
         icon: "🪑",
         category: "chair",
         width_cm: 65,
-        depth_cm: 60,
-        height_cm: 82,
-        color: 0x334155, // Slate Grey
-        style: "minimalist",
-        model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb"
+        depth_cm: 65,
+        height_cm: 95,
+        model_url: "models/chair.glb",
+        description: "Ergonomic swivel desk chair with lumbar contour."
       },
       {
-        id: 4,
-        name: "Classic Velvet Accent Chair",
-        short_name: "Accent Chair",
-        icon: "🪑",
-        category: "chair",
-        width_cm: 85,
-        depth_cm: 80,
-        height_cm: 80,
-        color: 0x7c3aed, // Purple/Gold Velvet
-        style: "classic",
-        model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ChairDamaskPurplegold/glTF-Binary/ChairDamaskPurplegold.glb"
-      },
-      {
-        id: 5,
-        name: "Compact Minimalist Study Desk",
-        short_name: "Study Desk",
+        id: 3,
+        name: "Adjustable Workstation Desk",
+        short_name: "Workstation Desk",
         icon: "🖥️",
         category: "desk",
-        width_cm: 110,
-        depth_cm: 55,
+        width_cm: 135,
+        depth_cm: 65,
         height_cm: 75,
-        color: 0xf59e0b, // Oak Wood Top with Black Metal
-        style: "minimalist",
-        model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb"
+        model_url: "models/desk.glb",
+        description: "Spacious computer workstation table with heavy-duty frame."
       }
     ];
 
     let lockedItems = [];
 
-    // Explainable AI Recommendation Formula
-    function getRecommendations(availW, availD, cat, style) {
-      let scored = catalog.map(item => {
-        let fits = (item.width_cm <= availW && item.depth_cm <= availD);
-        let clearance = ((availW - item.width_cm) + (availD - item.depth_cm)) / 2;
-        let spatialScore = fits ? Math.min(1.0, clearance / 35.0) : 0;
-        let styleScore = (item.style === style) ? 1.0 : 0.4;
-        let totalScore = fits ? Math.round((0.60 * spatialScore + 0.40 * styleScore) * 100) : 0;
+    // ====================================================
+    // HIGH-ACCURACY MULTI-FACTOR SPATIAL CLEARANCE ALGORITHM
+    // 50% Walkway Clearance + 30% Area Utilization + 20% Aspect Match
+    // ====================================================
+    function getRecommendations(availW, availD, cat) {
+      return catalog.map(item => {
+        // 1. Filter Category if specified
+        if (cat && item.category !== cat) {
+          return { ...item, fits: false, match_score: 0, reason: "Category filtered out" };
+        }
+
+        // 2. Check 2-Way Orientation Fit (Direct vs 90° Rotated)
+        const directFit = (item.width_cm <= availW && item.depth_cm <= availD);
+        const rotatedFit = (item.depth_cm <= availW && item.width_cm <= availD);
+        const fits = directFit || rotatedFit;
+
+        if (!fits) {
+          const excessW = Math.max(0, Math.min(item.width_cm - availW, item.depth_cm - availW));
+          const excessD = Math.max(0, Math.min(item.depth_cm - availD, item.width_cm - availD));
+          const excess = Math.max(excessW, excessD);
+          return {
+            ...item,
+            fits: false,
+            match_score: 0,
+            rotated: false,
+            clearance: 0,
+            reason: `Exceeds space by ${excess} cm (Requires min ${item.width_cm} × ${item.depth_cm} cm)`
+          };
+        }
+
+        // Choose best orientation
+        const isRotated = (!directFit && rotatedFit);
+        const effW = isRotated ? item.depth_cm : item.width_cm;
+        const effD = isRotated ? item.width_cm : item.depth_cm;
+
+        const clearanceW = (availW - effW) / 2;
+        const clearanceD = (availD - effD) / 2;
+        const meanClearance = (clearanceW + clearanceD) / 2;
+
+        // A. Walkway Clearance Score (50%) - Neufert Interior Standard (25-45 cm is 100% optimal)
+        let clearanceScore = 1.0;
+        if (meanClearance < 10) {
+          clearanceScore = Math.max(0.15, (meanClearance / 10) * 0.4); // Cramped penalty
+        } else if (meanClearance < 20) {
+          clearanceScore = 0.4 + ((meanClearance - 10) / 10) * 0.45;
+        } else if (meanClearance <= 45) {
+          clearanceScore = 1.0; // 100% ideal walkway clearance
+        } else {
+          // Under-utilization penalty if clearance is excessively large (>45cm)
+          clearanceScore = Math.max(0.40, 1.0 - ((meanClearance - 45) / 100) * 0.55);
+        }
+
+        // B. Area Utilization Ratio (30%) - Ideal footprint coverage is 55% - 75%
+        const spaceArea = availW * availD;
+        const itemArea = effW * effD;
+        const areaRatio = itemArea / spaceArea;
+        const areaScore = Math.max(0.2, 1.0 - Math.abs(areaRatio - 0.65) * 1.8);
+
+        // C. Aspect Ratio Alignment (20%)
+        const spaceAspect = Math.max(availW, availD) / Math.max(1, Math.min(availW, availD));
+        const itemAspect = Math.max(effW, effD) / Math.max(1, Math.min(effW, effD));
+        const aspectScore = Math.max(0.3, 1.0 - Math.min(1.0, Math.abs(spaceAspect - itemAspect) / 2.0));
+
+        // Final Composite Score (Normalized 20% - 98%)
+        let totalScore = Math.round((0.50 * clearanceScore + 0.30 * areaScore + 0.20 * aspectScore) * 100);
+        totalScore = Math.min(98, Math.max(25, totalScore));
 
         return {
           ...item,
-          fits: fits,
+          fits: true,
+          rotated: isRotated,
           match_score: totalScore,
-          clearance: Math.round(clearance)
+          clearance: Math.round(meanClearance),
+          clearance_w: Math.round(clearanceW),
+          clearance_d: Math.round(clearanceD),
+          area_coverage: Math.round(areaRatio * 100),
+          reason: `Fits with ${Math.round(meanClearance)} cm walkway clearance (${Math.round(areaRatio * 100)}% space coverage)`
         };
-      });
-
-      scored.sort((a, b) => b.match_score - a.match_score);
-      return scored;
+      }).sort((a, b) => b.match_score - a.match_score);
     }
 
     // Toggle Lock Item in Place
@@ -1012,56 +1059,60 @@
       const w = parseFloat(document.getElementById('width').value);
       const d = parseFloat(document.getElementById('depth').value);
       const cat = document.getElementById('category').value;
-      const style = document.getElementById('style').value;
 
-      const results = getRecommendations(w, d, cat, style).filter(i => i.fits);
+      const results = getRecommendations(w, d, cat);
       const container = document.getElementById('resultsList');
 
-      if (results.length > 0) {
-        container.innerHTML = results.map((item) => {
-          const isLocked = lockedItems.some(i => i.id === item.id);
-          return `
-            <div class="item-card">
-              <div>
-                <span class="score-badge">✓ ${item.match_score}% Match</span>
-                <h3 class="item-name">${item.name}</h3>
-                <div class="item-dimensions">
-                  Size: ${item.width_cm} × ${item.depth_cm} cm | Walkway Clearance: ${item.clearance} cm
-                </div>
-                <div class="item-actions">
+      container.innerHTML = results.map((item) => {
+        const isLocked = lockedItems.some(i => i.id === item.id);
+        const badgeClass = !item.fits ? 'oversized' : (item.match_score < 60 ? 'cramped' : '');
+        const badgeText = !item.fits ? '❌ Too Large' : `✓ ${item.match_score}% Match`;
+
+        return `
+          <div class="item-card">
+            <div>
+              <span class="score-badge ${badgeClass}">${badgeText}</span>
+              <h3 class="item-name">${item.name}</h3>
+              <div class="item-dimensions">
+                Size: ${item.width_cm} × ${item.depth_cm} × ${item.height_cm} cm
+              </div>
+              <div class="item-explanation">
+                ${item.reason}
+              </div>
+              <div class="item-actions">
+                ${item.fits ? `
                   <button type="button" class="btn-lock ${isLocked ? 'locked' : ''}" data-id="${item.id}" onclick="toggleLock(${item.id}, '${item.name}')">
                     ${isLocked ? '🔒 Locked In Place' : '📍 Lock Position'}
                   </button>
-                </div>
-              </div>
-
-              <div class="model-viewport">
-                <model-viewer 
-                  src="${item.model_url}" 
-                  alt="${item.name}" 
-                  ar 
-                  ar-modes="webxr scene-viewer quick-look" 
-                  camera-controls 
-                  shadow-intensity="1" 
-                  auto-rotate>
-                  <button slot="ar-button" class="ar-launch-btn">📱 VIEW IN AR</button>
-                </model-viewer>
+                ` : `<span style="font-size:0.75rem; color:#ef4444; font-weight:600;">Increase measured boundary to fit</span>`}
               </div>
             </div>
-          `;
-        }).join('');
-      } else {
-        container.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--text-muted);">No furniture fits this space. Increase width or depth!</div>';
-      }
+
+            <div class="model-viewport">
+              <model-viewer 
+                src="${item.model_url}" 
+                alt="${item.name}" 
+                ar 
+                ar-modes="webxr scene-viewer quick-look" 
+                camera-controls 
+                bounds="tight" 
+                shadow-intensity="1" 
+                auto-rotate>
+                <button slot="ar-button" class="ar-launch-btn">📱 VIEW IN AR</button>
+              </model-viewer>
+            </div>
+          </div>
+        `;
+      }).join('');
     });
 
     // 2D Ruler Canvas (4-point polygon A -> B -> C -> D)
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
-    let pA = { x: 40, y: 35, label: "A" };
-    let pB = { x: 220, y: 35, label: "B" };
-    let pC = { x: 220, y: 110, label: "C" };
-    let pD = { x: 40, y: 110, label: "D" };
+    let pA = { x: 35, y: 30, label: "A" };
+    let pB = { x: 235, y: 30, label: "B" };
+    let pC = { x: 235, y: 115, label: "C" };
+    let pD = { x: 35, y: 115, label: "D" };
     let draggingPoint = null;
 
     function drawRuler() {
@@ -1075,7 +1126,6 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // Draw closed 4-sided polygon
       ctx.beginPath();
       ctx.moveTo(pA.x, pA.y);
       ctx.lineTo(pB.x, pB.y);
@@ -1083,16 +1133,13 @@
       ctx.lineTo(pD.x, pD.y);
       ctx.closePath();
 
-      // Translucent floor fill
       ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
       ctx.fill();
 
-      // 4 perimeter border lines
       ctx.strokeStyle = "#0f172a";
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // 4 Corner Pins
       [pA, pB, pC, pD].forEach((p) => {
         ctx.fillStyle = "#0f172a";
         ctx.beginPath();
@@ -1105,16 +1152,14 @@
         ctx.fillText(p.label, p.x, p.y);
       });
 
-      // Calculate width (A to B) and depth (B to C)
       let wPx = Math.hypot(pB.x - pA.x, pB.y - pA.y);
       let dPx = Math.hypot(pC.x - pB.x, pC.y - pB.y);
-      let wCm = Math.round(wPx * 0.92);
-      let dCm = Math.round(dPx * 0.92);
+      let wCm = Math.round(wPx * 0.95);
+      let dCm = Math.round(dPx * 0.95);
 
       document.getElementById('width').value = Math.max(50, wCm);
       document.getElementById('depth').value = Math.max(40, dCm);
 
-      // Edge labels
       ctx.fillStyle = "#0f172a";
       ctx.font = "bold 10px sans-serif";
       ctx.fillText(`${wCm} cm (A→B)`, (pA.x + pB.x) / 2, (pA.y + pB.y) / 2 - 8);
@@ -1170,7 +1215,7 @@
 
     // ====================================================
     // POINT-BY-POINT BOUNDARY (A -> B -> C -> D) AR ENGINE
-    // WITH ABSOLUTE WORLD ANCHORING (POINTS DO NOT MOVE!)
+    // WITH ABSOLUTE WORLD ANCHORING AND ACCURATE 3D MODELS
     // ====================================================
     let arContainer = document.getElementById('arViewContainer');
     let arVideo = document.getElementById('arVideoFeed');
@@ -1180,12 +1225,11 @@
     let scene3D, camera3D, renderer3D;
     let reticle3D = null;
 
-    // Boundary World Geometry
-    let boundaryPoints = []; // Array of THREE.Vector3 stored in true World Space
-    let activeLineMesh = null; // Live line from last placed point to reticle
-    let lockedPerimeterMesh = null; // Locked lines
-    let floorPolygonMesh = null; // Translucent floor fill
-    let pinMeshes = []; // World pin spheres
+    let boundaryPoints = [];
+    let activeLineMesh = null;
+    let lockedPerimeterMesh = null;
+    let floorPolygonMesh = null;
+    let pinMeshes = [];
 
     let isBoundaryComplete = false;
     let currentSpawnedModel = null;
@@ -1195,12 +1239,13 @@
     let measuredWidthCm = 0;
     let measuredDepthCm = 0;
 
-    // WebXR Session variables
     let xrSession = null;
     let xrRefSpace = null;
     let xrHitTestSource = null;
 
-    // Launch AR Measurement Experience
+    const gltfLoader = new THREE.GLTFLoader();
+    const modelCache = {};
+
     window.openARMeasureExperience = async function() {
       if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
         startWebXRPointSession();
@@ -1209,7 +1254,6 @@
       }
     };
 
-    // 1. True WebXR Session (Google ARCore) with Real World Anchors
     async function startWebXRPointSession() {
       try {
         arContainer.style.display = 'flex';
@@ -1228,7 +1272,6 @@
           });
         });
 
-        // Use 'local' reference space so all objects are locked in Physical World Space!
         xrSession.requestReferenceSpace('local').then((refSpace) => {
           xrRefSpace = refSpace;
         });
@@ -1244,7 +1287,6 @@
       }
     }
 
-    // 2. Camera Video Mode (Fallback)
     async function startFallbackCameraPointAR() {
       try {
         mediaCameraStream = await navigator.mediaDevices.getUserMedia({
@@ -1265,7 +1307,6 @@
       }
     }
 
-    // Initialize Three.js Scene
     function initThreeARScene(isWebXR) {
       scene3D = new THREE.Scene();
       camera3D = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 50);
@@ -1275,12 +1316,11 @@
         camera3D.lookAt(0, 0, 0);
       }
 
-      // Lights
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.3);
       hemiLight.position.set(0, 20, 0);
       scene3D.add(hemiLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
       dirLight.position.set(3, 10, 5);
       scene3D.add(dirLight);
 
@@ -1293,7 +1333,6 @@
         renderer3D.xr.setReferenceSpaceType('local');
       }
 
-      // 3D Circular Reticle that hugs the floor
       const ringGeom = new THREE.RingGeometry(0.045, 0.055, 32).rotateX(-Math.PI / 2);
       const dotGeom = new THREE.CircleGeometry(0.008, 16).rotateX(-Math.PI / 2);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
@@ -1305,7 +1344,6 @@
       scene3D.add(reticle3D);
     }
 
-    // WebXR Frame Render Loop
     function renderWebXRPointFrame(timestamp, frame) {
       if (frame && xrHitTestSource && xrRefSpace) {
         const hitTestResults = frame.getHitTestResults(xrHitTestSource);
@@ -1320,7 +1358,6 @@
 
           const currentReticlePos = new THREE.Vector3().setFromMatrixPosition(reticle3D.matrix);
 
-          // Update live stretching line from last placed point to current reticle
           if (boundaryPoints.length > 0 && boundaryPoints.length < 4 && !isBoundaryComplete) {
             updateLiveStretchingLine(boundaryPoints[boundaryPoints.length - 1], currentReticlePos);
           }
@@ -1331,7 +1368,6 @@
       renderer3D.render(scene3D, camera3D);
     }
 
-    // Fallback Frame Render Loop
     function renderFallbackCameraPointFrame() {
       if (arContainer.style.display !== 'flex') return;
 
@@ -1346,9 +1382,7 @@
       requestAnimationFrame(renderFallbackCameraPointFrame);
     }
 
-    // ====================================================
-    // POINT-BY-POINT BOUNDARY WORKFLOW: A -> B -> C -> D
-    // ====================================================
+    // Shutter Trigger: A -> B -> C -> D
     const pointLabels = ["A", "B", "C", "D"];
 
     window.triggerARPointAction = function() {
@@ -1361,38 +1395,28 @@
         currentPos.set(0, 0, -1.2);
       }
 
-      // Check distance from previous point to avoid zero-distance double tap
       if (boundaryPoints.length > 0) {
         const lastPt = boundaryPoints[boundaryPoints.length - 1];
         if (lastPt.distanceTo(currentPos) < 0.10) {
-          // Add default offset if user tapped in place
-          if (boundaryPoints.length === 1) currentPos.x += 1.4;
+          if (boundaryPoints.length === 1) currentPos.x += 1.8;
           else if (boundaryPoints.length === 2) currentPos.z -= 0.9;
-          else if (boundaryPoints.length === 3) currentPos.x -= 1.4;
+          else if (boundaryPoints.length === 3) currentPos.x -= 1.8;
         }
       }
 
-      // Store in True World Space Coordinates (CLONED, NOT TIED TO RETICLE)
       const worldPoint = currentPos.clone();
-      worldPoint.y = (boundaryPoints.length > 0) ? boundaryPoints[0].y : worldPoint.y; // Keep level on floor plane
+      worldPoint.y = (boundaryPoints.length > 0) ? boundaryPoints[0].y : worldPoint.y;
       boundaryPoints.push(worldPoint);
 
       const idx = boundaryPoints.length - 1;
-      const label = pointLabels[idx];
-
-      // Spawn Permanent World Pin
-      createPermanentWorldPin(worldPoint, label);
+      createPermanentWorldPin(worldPoint, pointLabels[idx]);
 
       if (navigator.vibrate) navigator.vibrate(40);
       document.getElementById('btnArReset').style.display = 'inline-block';
 
-      // Update step progress dots & instructions
       updateStepUI(idx);
-
-      // Rebuild and Lock completed lines
       renderLockedBoundaryLines();
 
-      // Check if 4 points are placed (A, B, C, D)
       if (boundaryPoints.length === 4) {
         completeBoundaryAndLock();
       }
@@ -1420,19 +1444,16 @@
       }
     }
 
-    // Create World Space Pin that NEVER moves with the phone
     function createPermanentWorldPin(pos, label) {
       const pinGroup = new THREE.Group();
-      pinGroup.position.copy(pos); // Set absolute world position
+      pinGroup.position.copy(pos);
 
-      // Sphere elevated 2cm off floor
       const sphereGeom = new THREE.SphereGeometry(0.016, 24, 24);
       const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
       const sphere = new THREE.Mesh(sphereGeom, sphereMat);
       sphere.position.y = 0.016;
       pinGroup.add(sphere);
 
-      // Base ring on floor
       const ringGeom = new THREE.RingGeometry(0.02, 0.026, 32).rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide });
       const ring = new THREE.Mesh(ringGeom, ringMat);
@@ -1440,10 +1461,9 @@
       pinGroup.add(ring);
 
       pinMeshes.push(pinGroup);
-      scene3D.add(pinGroup); // Added directly to scene, NEVER to camera!
+      scene3D.add(pinGroup);
     }
 
-    // Live stretching line while walking from point N to reticle
     function updateLiveStretchingLine(fromPos, toPos) {
       if (activeLineMesh) {
         scene3D.remove(activeLineMesh);
@@ -1451,17 +1471,13 @@
       }
 
       const y = fromPos.y + 0.005;
-      const points = [
-        new THREE.Vector3(fromPos.x, y, fromPos.z),
-        new THREE.Vector3(toPos.x, y, toPos.z)
-      ];
+      const points = [new THREE.Vector3(fromPos.x, y, fromPos.z), new THREE.Vector3(toPos.x, y, toPos.z)];
 
       const geom = new THREE.BufferGeometry().setFromPoints(points);
-      const mat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 4 }); // Warm yellow
+      const mat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 4 });
       activeLineMesh = new THREE.Line(geom, mat);
       scene3D.add(activeLineMesh);
 
-      // Show live stretching distance badge
       const distCm = Math.round(fromPos.distanceTo(toPos) * 100);
       const dimBadge = document.getElementById('arLiveDim');
       dimBadge.style.display = 'block';
@@ -1469,7 +1485,6 @@
       dimBadge.style.borderColor = '#fbbf24';
     }
 
-    // Render Locked Lines between all placed points
     function renderLockedBoundaryLines() {
       if (lockedPerimeterMesh) {
         scene3D.remove(lockedPerimeterMesh);
@@ -1481,7 +1496,6 @@
       const y = boundaryPoints[0].y + 0.005;
       const points = boundaryPoints.map(p => new THREE.Vector3(p.x, y, p.z));
 
-      // If all 4 points placed, close the loop (D -> A)
       if (boundaryPoints.length === 4) {
         points.push(new THREE.Vector3(boundaryPoints[0].x, y, boundaryPoints[0].z));
       }
@@ -1493,7 +1507,6 @@
       scene3D.add(lockedPerimeterMesh);
     }
 
-    // Once Corner D is placed: Complete Space & Launch Snapchat Filters
     function completeBoundaryAndLock() {
       isBoundaryComplete = true;
 
@@ -1502,11 +1515,10 @@
         activeLineMesh = null;
       }
 
-      // 1. Calculate physical dimensions
-      const p0 = boundaryPoints[0]; // A
-      const p1 = boundaryPoints[1]; // B
-      const p2 = boundaryPoints[2]; // C
-      const p3 = boundaryPoints[3]; // D
+      const p0 = boundaryPoints[0];
+      const p1 = boundaryPoints[1];
+      const p2 = boundaryPoints[2];
+      const p3 = boundaryPoints[3];
 
       const wMeters = p0.distanceTo(p1);
       const dMeters = p1.distanceTo(p2);
@@ -1514,7 +1526,6 @@
       measuredWidthCm = Math.max(50, Math.round(wMeters * 100));
       measuredDepthCm = Math.max(40, Math.round(dMeters * 100));
 
-      // 2. Add Soft Translucent Floor Mesh inside the 4-point polygon
       const shape = new THREE.Shape();
       shape.moveTo(p0.x, -p0.z);
       shape.lineTo(p1.x, -p1.z);
@@ -1534,7 +1545,6 @@
       floorPolygonMesh.position.y = p0.y + 0.003;
       scene3D.add(floorPolygonMesh);
 
-      // 3. Update HUD
       document.getElementById('arInstructionText').innerHTML = `✅ Space Locked: <b style="color:#10b981">${measuredWidthCm} × ${measuredDepthCm} cm</b>`;
       document.getElementById('arShutterContainer').style.display = 'none';
 
@@ -1545,23 +1555,22 @@
 
       if (navigator.vibrate) navigator.vibrate([70, 50, 70]);
 
-      // 4. Reveal Snapchat Filter Carousel inside Camera
+      // Launch in-camera Snapchat filter carousel with the 3 available models
       revealSnapchatFilters(measuredWidthCm, measuredDepthCm);
     }
 
-    // Screen tap fallback
     threeCanvas.addEventListener('click', () => {
       if (!isBoundaryComplete) triggerARPointAction();
     });
 
     // ====================================================
-    // SNAPCHAT-STYLE IN-CAMERA FILTER CAROUSEL
+    // SNAPCHAT-STYLE FILTER CAROUSEL FOR AVAILABLE MODELS
     // ====================================================
     function revealSnapchatFilters(wCm, dCm) {
       const carousel = document.getElementById('snapFilterCarousel');
       carousel.style.display = 'flex';
 
-      const suggestions = getRecommendations(wCm, dCm, "", "modern");
+      const suggestions = getRecommendations(wCm, dCm, "");
 
       carousel.innerHTML = suggestions.map((item, idx) => {
         const isFits = item.fits;
@@ -1584,7 +1593,6 @@
       }
     }
 
-    // Select Furniture from Snapchat Carousel
     window.selectSnapchatFurniture = function(itemId) {
       const item = catalog.find(i => i.id === itemId);
       if (!item) return;
@@ -1604,7 +1612,7 @@
       
       document.getElementById('tbFurnitureSub').innerText = isFits 
         ? `Size: ${item.width_cm} × ${item.depth_cm} cm | Walkway Clearance: ${clearance} cm`
-        : `⚠️ Warning: Exceeds measured boundary (${item.width_cm} × ${item.depth_cm} cm)`;
+        : `⚠️ Warning: Exceeds space by ${item.width_cm - measuredWidthCm} cm`;
 
       const isLocked = lockedSpawnedModels.some(m => m.userData.id === itemId);
       const lockBtn = document.getElementById('btnLockInAR');
@@ -1616,12 +1624,14 @@
         lockBtn.innerHTML = '🔒 Lock in Room';
       }
 
-      // Spawn 3D Model in Physical World Space inside the boundary
       spawn3DFurnitureInBoundary(item);
       if (navigator.vibrate) navigator.vibrate(30);
     };
 
-    // Spawn 3D Furniture in Exact World Coordinates inside Polygon A-B-C-D
+    // ====================================================
+    // ACCURATE 3D MODEL LOADER & AUTO-NORMALIZATION
+    // Normalizes raw scale, centers geometry, and aligns with boundary!
+    // ====================================================
     function spawn3DFurnitureInBoundary(item) {
       if (currentSpawnedModel && !lockedSpawnedModels.includes(currentSpawnedModel)) {
         scene3D.remove(currentSpawnedModel);
@@ -1630,92 +1640,101 @@
 
       if (boundaryPoints.length < 4) return;
 
-      // True Geometric Center of Polygon {A, B, C, D}
       const centerX = (boundaryPoints[0].x + boundaryPoints[1].x + boundaryPoints[2].x + boundaryPoints[3].x) / 4;
       const centerZ = (boundaryPoints[0].z + boundaryPoints[1].z + boundaryPoints[2].z + boundaryPoints[3].z) / 4;
       const floorY = boundaryPoints[0].y;
 
-      // Orient furniture along edge A -> B
       const dx = boundaryPoints[1].x - boundaryPoints[0].x;
       const dz = boundaryPoints[1].z - boundaryPoints[0].z;
-      const rotationAngle = Math.atan2(dx, dz);
+      let rotationAngle = Math.atan2(dx, dz);
+      if (item.rotated) rotationAngle += Math.PI / 2;
 
-      const modelGroup = createProcedural3DFurniture(item);
-      modelGroup.position.set(centerX, floorY, centerZ); // Set in World Coordinates!
-      modelGroup.rotation.y = rotationAngle;
-      modelGroup.userData = { id: item.id, name: item.name };
+      // Master World-Anchored Container
+      const container = new THREE.Group();
+      container.position.set(centerX, floorY, centerZ);
+      container.rotation.y = rotationAngle;
+      container.userData = { id: item.id, name: item.name };
 
-      currentSpawnedModel = modelGroup;
-      scene3D.add(currentSpawnedModel); // Added to scene, anchors to room!
+      currentSpawnedModel = container;
+      scene3D.add(currentSpawnedModel);
+
+      // Check if GLB is cached
+      if (modelCache[item.model_url]) {
+        attachNormalizedModel(container, modelCache[item.model_url].clone(), item);
+      } else {
+        // Immediate elegant procedural proxy while GLB streams
+        const placeholder = createProcedural3DFurniture(item);
+        container.add(placeholder);
+
+        gltfLoader.load(item.model_url, (gltf) => {
+          modelCache[item.model_url] = gltf.scene;
+          container.remove(placeholder);
+          attachNormalizedModel(container, gltf.scene.clone(), item);
+        }, undefined, (err) => {
+          console.warn("Retaining calibrated proxy for:", item.name);
+        });
+      }
     }
 
-    // Procedural 3D Furniture Builder
+    // Auto-Centering and Metric Rescaling for raw GLB files
+    function attachNormalizedModel(parentGroup, rawMesh, item) {
+      const box = new THREE.Box3().setFromObject(rawMesh);
+      const rawSize = box.getSize(new THREE.Vector3());
+      const rawCenter = box.getCenter(new THREE.Vector3());
+
+      // 1. Center at origin and place base precisely on floor Y=0
+      rawMesh.position.x = -rawCenter.x;
+      rawMesh.position.y = -box.min.y;
+      rawMesh.position.z = -rawCenter.z;
+
+      // 2. Compute exact scale factors to match real-world centimeters
+      const targetW = item.width_cm / 100;
+      const targetH = item.height_cm / 100;
+      const targetD = item.depth_cm / 100;
+
+      const scaleX = targetW / Math.max(0.0001, rawSize.x);
+      const scaleY = targetH / Math.max(0.0001, rawSize.y);
+      const scaleZ = targetD / Math.max(0.0001, rawSize.z);
+
+      const wrapper = new THREE.Group();
+      wrapper.add(rawMesh);
+      wrapper.scale.set(scaleX, scaleY, scaleZ);
+
+      parentGroup.add(wrapper);
+    }
+
+    // Procedural Fallback Builder (Calibrated 1:1 scale)
     function createProcedural3DFurniture(item) {
       const group = new THREE.Group();
       const wM = item.width_cm / 100;
       const dM = item.depth_cm / 100;
       const hM = item.height_cm / 100;
 
-      const mainMat = new THREE.MeshStandardMaterial({
-        color: item.color,
-        roughness: 0.4,
-        metalness: 0.1
-      });
-
-      const legMat = new THREE.MeshStandardMaterial({
-        color: 0x1f2937,
-        roughness: 0.3,
-        metalness: 0.8
-      });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.8 });
 
       if (item.category === "sofa") {
-        const baseGeom = new THREE.BoxGeometry(wM, hM * 0.45, dM);
-        const base = new THREE.Mesh(baseGeom, mainMat);
+        const base = new THREE.Mesh(new THREE.BoxGeometry(wM, hM * 0.45, dM), mat);
         base.position.y = hM * 0.35;
         group.add(base);
 
-        const backGeom = new THREE.BoxGeometry(wM, hM * 0.55, dM * 0.25);
-        const back = new THREE.Mesh(backGeom, mainMat);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(wM, hM * 0.55, dM * 0.25), mat);
         back.position.set(0, hM * 0.65, -dM * 0.35);
         group.add(back);
-
-        const legGeom = new THREE.CylinderGeometry(0.02, 0.015, hM * 0.2);
-        [[-wM * 0.45, -dM * 0.4], [wM * 0.45, -dM * 0.4], [-wM * 0.45, dM * 0.4], [wM * 0.45, dM * 0.4]].forEach(([lx, lz]) => {
-          const leg = new THREE.Mesh(legGeom, legMat);
-          leg.position.set(lx, hM * 0.1, lz);
-          group.add(leg);
-        });
       } 
       else if (item.category === "chair") {
-        const seatGeom = new THREE.BoxGeometry(wM, hM * 0.1, dM);
-        const seat = new THREE.Mesh(seatGeom, mainMat);
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(wM, hM * 0.1, dM), mat);
         seat.position.y = hM * 0.48;
         group.add(seat);
 
-        const backGeom = new THREE.BoxGeometry(wM * 0.9, hM * 0.5, dM * 0.15);
-        const back = new THREE.Mesh(backGeom, mainMat);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(wM * 0.9, hM * 0.5, dM * 0.15), mat);
         back.position.set(0, hM * 0.72, -dM * 0.4);
         group.add(back);
-
-        const legGeom = new THREE.CylinderGeometry(0.015, 0.01, hM * 0.45);
-        [[-wM * 0.4, -dM * 0.4], [wM * 0.4, -dM * 0.4], [-wM * 0.4, dM * 0.4], [wM * 0.4, dM * 0.4]].forEach(([lx, lz]) => {
-          const leg = new THREE.Mesh(legGeom, legMat);
-          leg.position.set(lx, hM * 0.22, lz);
-          group.add(leg);
-        });
       } 
       else if (item.category === "desk") {
-        const topGeom = new THREE.BoxGeometry(wM, 0.04, dM);
-        const top = new THREE.Mesh(topGeom, mainMat);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(wM, 0.04, dM), mat);
         top.position.y = hM;
         group.add(top);
-
-        const legGeom = new THREE.BoxGeometry(0.03, hM, 0.03);
-        [[-wM * 0.45, -dM * 0.4], [wM * 0.45, -dM * 0.4], [-wM * 0.45, dM * 0.4], [wM * 0.45, dM * 0.4]].forEach(([lx, lz]) => {
-          const leg = new THREE.Mesh(legGeom, legMat);
-          leg.position.set(lx, hM * 0.5, lz);
-          group.add(leg);
-        });
       }
 
       return group;
@@ -1763,7 +1782,6 @@
         currentSpawnedModel = null;
       }
 
-      // Reset Step Indicators
       const dots = [document.getElementById('dotA'), document.getElementById('dotB'), document.getElementById('dotC'), document.getElementById('dotD')];
       dots.forEach((dot, i) => {
         dot.classList.remove('active', 'completed');
