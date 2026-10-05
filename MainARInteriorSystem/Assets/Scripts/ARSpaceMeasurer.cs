@@ -239,23 +239,18 @@ namespace ARInterior
 
                 if (lineRenderer != null)
                 {
-                    lineRenderer.positionCount = 2;
-                    Vector3 elevated = pointAPosition + Vector3.up * 0.01f;
-                    lineRenderer.SetPosition(0, elevated);
-                    lineRenderer.SetPosition(1, elevated);
+                    lineRenderer.positionCount = 5;
+                    UpdateLiveRectangle(pointAPosition, pointAPosition);
                 }
-                Debug.Log($"[AR MEASURE] Pin A dropped at: {pointAPosition}");
+                Debug.Log($"[AR MEASURE] Corner 1 set at: {pointAPosition}");
             }
             else if (isMeasuring && !isMeasurementLocked)
             {
-                // Drop Pin B and Lock
-                float distanceMeters = Vector3.Distance(pointAPosition, position);
-                float distanceCm = Mathf.Round(distanceMeters * 100f);
-
-                // Ignore accidental taps less than 8 cm from Pin A
-                if (distanceCm < 8f)
+                // Drop Corner 2 and Lock 4-sided Rectangle
+                float distM = Vector3.Distance(pointAPosition, position);
+                if (distM < 0.10f)
                 {
-                    Debug.Log($"[AR MEASURE] Ignored tap too close to Pin A ({distanceCm} cm). Move further away!");
+                    Debug.Log("[AR MEASURE] Ignored tap too close to Corner 1. Move diagonally further away!");
                     return;
                 }
 
@@ -263,33 +258,48 @@ namespace ARInterior
                 isMeasuring = false;
                 isMeasurementLocked = true;
 
-                pinBInstance = CreatePinInstance(pointBPosition, new Color(1f, 0.85f, 0.2f));
-
-                lockedWidthCm = distanceCm;
-                lockedDepthCm = Mathf.Round(lockedWidthCm * 0.65f);
-                currentDistanceCm = lockedWidthCm;
+                pinBInstance = CreatePinInstance(pointBPosition, new Color(0.06f, 0.72f, 0.5f)); // Emerald Green
+                UpdateLiveRectangle(pointAPosition, pointBPosition);
 
                 if (lineRenderer != null)
                 {
-                    lineRenderer.positionCount = 2;
-                    lineRenderer.SetPosition(0, pointAPosition + Vector3.up * 0.01f);
-                    lineRenderer.SetPosition(1, pointBPosition + Vector3.up * 0.01f);
+                    lineRenderer.startColor = new Color(0.06f, 0.72f, 0.5f);
+                    lineRenderer.endColor = new Color(0.06f, 0.72f, 0.5f);
                 }
 
-                Debug.Log($"[AR MEASURE] Distance LOCKED: Width = {lockedWidthCm} cm, Depth = {lockedDepthCm} cm");
+                Debug.Log($"[AR MEASURE] 4-Line Space LOCKED: Width = {lockedWidthCm} cm, Depth = {lockedDepthCm} cm");
                 OnMeasurementLocked?.Invoke(lockedWidthCm, lockedDepthCm);
             }
         }
 
         private void UpdateLiveMeasurement(Vector3 start, Vector3 current)
         {
-            float distanceMeters = Vector3.Distance(start, current);
-            currentDistanceCm = Mathf.Round(distanceMeters * 100f);
+            UpdateLiveRectangle(start, current);
+        }
 
-            if (lineRenderer != null && lineRenderer.positionCount == 2)
+        private void UpdateLiveRectangle(Vector3 pA, Vector3 pB)
+        {
+            float y = Mathf.Min(pA.y, pB.y) + 0.01f;
+            float minX = Mathf.Min(pA.x, pB.x);
+            float maxX = Mathf.Max(pA.x, pB.x);
+            float minZ = Mathf.Min(pA.z, pB.z);
+            float maxZ = Mathf.Max(pA.z, pB.z);
+
+            float wMeters = Mathf.Max(0.2f, maxX - minX);
+            float dMeters = Mathf.Max(0.2f, maxZ - minZ);
+
+            lockedWidthCm = Mathf.Round(wMeters * 100f);
+            lockedDepthCm = Mathf.Round(dMeters * 100f);
+            currentDistanceCm = lockedWidthCm;
+
+            if (lineRenderer != null)
             {
-                lineRenderer.SetPosition(0, start + Vector3.up * 0.01f);
-                lineRenderer.SetPosition(1, current + Vector3.up * 0.01f);
+                lineRenderer.positionCount = 5;
+                lineRenderer.SetPosition(0, new Vector3(minX, y, minZ));
+                lineRenderer.SetPosition(1, new Vector3(maxX, y, minZ));
+                lineRenderer.SetPosition(2, new Vector3(maxX, y, maxZ));
+                lineRenderer.SetPosition(3, new Vector3(minX, y, maxZ));
+                lineRenderer.SetPosition(4, new Vector3(minX, y, minZ)); // Closes 4-sided rectangle loop
             }
         }
 
