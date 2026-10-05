@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>InteriorAI — Smart AR Room Planner</title>
   
-  <!-- Three.js for True WebXR Metric AR Hit-Testing -->
+  <!-- Three.js for Real-Time 3D Metric AR & Procedural Rendering -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Google Model Viewer for AR Visualization (WebXR & Google Scene Viewer) -->
+  <!-- Google Model Viewer for AR Scene Viewer Fallback -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
   <style>
@@ -23,6 +23,7 @@
       --primary-hover: #1e293b;
       --accent: #10b981;
       --accent-soft: #ecfdf5;
+      --accent-gold: #f59e0b;
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
       --shadow-md: 0 4px 20px -2px rgba(0,0,0,0.06);
       --shadow-lg: 0 10px 30px -4px rgba(0,0,0,0.1);
@@ -163,7 +164,7 @@
     /* Interactive Floor Grid Canvas */
     #rulerCanvas {
       width: 100%;
-      height: 110px;
+      height: 140px;
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -394,37 +395,61 @@
     }
 
     /* ==================================================== */
-    /* WEBXR AR OVERLAY HUD (IPHONE MEASURE APP STYLE)      */
+    /* FULL SCREEN AR VIEW (WEBXR & FALLBACK CAMERA)         */
     /* ==================================================== */
-    #xrOverlay {
+    #arViewContainer {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      pointer-events: none;
+      background: #000000;
       z-index: 99999;
       display: none;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
+      overflow: hidden;
       user-select: none;
     }
 
-    .xr-top-hud {
+    #arVideoFeed {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    #arThreeCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: auto;
+    }
+
+    /* Top HUD Instruction Pill */
+    .ar-hud-top {
+      position: absolute;
+      top: 18px;
+      left: 16px;
+      right: 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      z-index: 10;
       pointer-events: auto;
-      width: 100%;
     }
 
-    .xr-pill {
+    .ar-hud-pill {
       background: rgba(15, 23, 42, 0.88);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       color: #ffffff;
-      padding: 10px 18px;
+      padding: 9px 18px;
       border-radius: 30px;
       font-size: 0.85rem;
       font-weight: 600;
@@ -436,7 +461,7 @@
       max-width: 82%;
     }
 
-    .xr-indicator-dot {
+    .ar-indicator-dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
@@ -451,7 +476,7 @@
       100% { transform: scale(0.9); opacity: 0.7; }
     }
 
-    .xr-close-btn {
+    .ar-close-btn {
       width: 44px;
       height: 44px;
       border-radius: 50%;
@@ -467,50 +492,51 @@
       cursor: pointer;
     }
 
-    /* Live Floating Distance Badge in AR */
-    .xr-live-badge {
+    /* Live Floating Dimension Badge */
+    .ar-floating-dim {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -120%);
+      transform: translate(-50%, -130%);
       background: #ffffff;
       color: #0f172a;
-      padding: 8px 18px;
-      border-radius: 30px;
-      font-size: 1.15rem;
+      padding: 7px 18px;
+      border-radius: 24px;
+      font-size: 1.05rem;
       font-weight: 800;
-      letter-spacing: -0.3px;
       box-shadow: 0 6px 25px rgba(0,0,0,0.4);
-      display: none;
-      pointer-events: none;
       border: 2px solid #fbbf24;
-      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+      z-index: 10;
+      display: none;
     }
 
-    @keyframes popIn {
-      from { transform: translate(-50%, -100%) scale(0.8); opacity: 0; }
-      to { transform: translate(-50%, -120%) scale(1); opacity: 1; }
-    }
-
-    /* Bottom Shutter & Action Bar */
-    .xr-bottom-hud {
+    /* ==================================================== */
+    /* SNAPCHAT-STYLE IN-CAMERA FILTER CAROUSEL (BOTTOM)    */
+    /* ==================================================== */
+    .ar-camera-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      padding-bottom: 24px;
       pointer-events: auto;
-      margin-bottom: 24px;
-      width: 100%;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
     }
 
-    .xr-shutter-row {
+    /* Shutter Button when Measuring */
+    .ar-shutter-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 18px;
+      gap: 16px;
+      margin-bottom: 12px;
     }
 
-    .btn-xr-shutter {
+    .btn-camera-shutter {
       width: 76px;
       height: 76px;
       border-radius: 50%;
@@ -524,12 +550,12 @@
       transition: transform 0.1s, background 0.15s;
     }
 
-    .btn-xr-shutter:active {
+    .btn-camera-shutter:active {
       transform: scale(0.92);
       background: rgba(255, 255, 255, 0.45);
     }
 
-    .xr-shutter-dot {
+    .shutter-core {
       width: 58px;
       height: 58px;
       border-radius: 50%;
@@ -537,45 +563,165 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
-    .btn-xr-reset {
+    .btn-ar-reset {
       background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       color: #ffffff;
       border: 1px solid rgba(255,255,255,0.3);
-      padding: 12px 20px;
+      padding: 10px 18px;
       border-radius: 30px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
     }
 
-    .btn-xr-apply {
+    /* Selected Furniture Active Toolbar */
+    .ar-furniture-toolbar {
+      display: none;
+      width: 90%;
+      max-width: 440px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .toolbar-info {
+      color: #ffffff;
+    }
+
+    .toolbar-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-ar-lock {
       background: #10b981;
       color: #ffffff;
       border: none;
-      padding: 14px 24px;
-      border-radius: 30px;
-      font-size: 0.95rem;
+      padding: 9px 15px;
+      border-radius: 10px;
+      font-size: 0.82rem;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
       display: flex;
       align-items: center;
-      gap: 8px;
-      animation: popIn 0.3s ease-out;
+      gap: 5px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
     }
 
-    .btn-xr-apply:active {
-      transform: scale(0.96);
+    .btn-ar-lock.locked {
+      background: #0f172a;
+      border: 1px solid #10b981;
+      color: #10b981;
     }
 
-    .xr-tip-sub {
-      color: rgba(255,255,255,0.85);
-      font-size: 0.78rem;
-      font-weight: 500;
+    /* Snapchat Filter Row (Horizontal Scrolling Carousel) */
+    .snapchat-filter-carousel {
+      display: none;
+      width: 100%;
+      overflow-x: auto;
+      padding: 8px 20px;
+      gap: 16px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .snapchat-filter-carousel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .snap-filter-item {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .snap-filter-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 3px solid rgba(255, 255, 255, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .snap-filter-circle.active {
+      border-color: #10b981;
+      transform: scale(1.12);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+      background: #ffffff;
+    }
+
+    .snap-filter-circle.disabled {
+      opacity: 0.45;
+      filter: grayscale(1);
+      border-color: #ef4444;
+    }
+
+    .snap-filter-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .snap-filter-score {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #10b981;
+      margin-top: 2px;
+    }
+
+    .snap-filter-score.too-big {
+      color: #ef4444;
+    }
+
+    .snap-filter-label {
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 700;
       text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      max-width: 75px;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 </head>
@@ -601,13 +747,13 @@
       <!-- Distance Measurement Tool -->
       <div class="measure-box">
         <div class="measure-header">
-          <span class="measure-title">Real AR Tape Measure</span>
-          <button type="button" class="cam-btn" onclick="startWebXRMeasure()">
-            📏 Open AR Measure
+          <span class="measure-title">4-Line AR Floor Boundary</span>
+          <button type="button" class="cam-btn" onclick="openARMeasureExperience()">
+            📏 Measure 4-Line Space
           </button>
         </div>
-        <canvas id="rulerCanvas" width="280" height="110"></canvas>
-        <div class="ruler-tip">Tap "Open AR Measure" for real Google ARCore floor tracking, or drag pins on the grid above.</div>
+        <canvas id="rulerCanvas" width="280" height="140"></canvas>
+        <div class="ruler-tip">Measure 4-sided floor rectangle in AR. Instant Snapchat filters appear right in camera!</div>
       </div>
 
       <form id="recommendForm">
@@ -668,41 +814,55 @@
   </div>
 
   <!-- ==================================================== -->
-  <!-- WEBXR REAL AR DOM OVERLAY (GOOGLE ARCORE HIT-TEST)    -->
+  <!-- FULL SCREEN AR VIEW (4-LINE RECTANGLE + SNAPCHAT UI) -->
   <!-- ==================================================== -->
-  <div id="xrOverlay">
-    <!-- Top Instruction Pill -->
-    <div class="xr-top-hud">
-      <div class="xr-pill">
-        <span class="xr-indicator-dot"></span>
-        <span id="xrInstruction">Point camera at floor until ring appears</span>
+  <div id="arViewContainer">
+    <video id="arVideoFeed" autoplay playsinline muted></video>
+    <canvas id="arThreeCanvas"></canvas>
+
+    <!-- Top HUD Instruction Pill -->
+    <div class="ar-hud-top">
+      <div class="ar-hud-pill">
+        <span class="ar-indicator-dot"></span>
+        <span id="arInstructionText">Aim at floor & tap shutter (Corner 1)</span>
       </div>
-      <button class="xr-close-btn" onclick="exitWebXRSession()" aria-label="Close AR">✕</button>
+      <button class="ar-close-btn" onclick="closeARMeasureExperience()" aria-label="Close AR">✕</button>
     </div>
 
-    <!-- Live Floating Measurement Badge -->
-    <div class="xr-live-badge" id="xrLiveBadge">0 cm</div>
+    <!-- Live Dimension Pill -->
+    <div class="ar-floating-dim" id="arLiveDim">160 × 90 cm</div>
 
-    <!-- Bottom Controls (Shutter, Reset, Apply) -->
-    <div class="xr-bottom-hud">
-      <div class="xr-shutter-row">
-        <button id="btnXrReset" class="btn-xr-reset" onclick="resetWebXRMeasure()" style="display: none;">
+    <!-- Bottom Camera Controls & Snapchat Filters -->
+    <div class="ar-camera-bottom">
+      
+      <!-- 1. Shutter row for placing corners -->
+      <div class="ar-shutter-container" id="arShutterContainer">
+        <button id="btnArReset" class="btn-ar-reset" onclick="resetARMeasurement()" style="display: none;">
           🔄 Reset
         </button>
-
-        <!-- Big Shutter Button: Drop Pin A -> Pin B -->
-        <button id="btnXrShutter" class="btn-xr-shutter" onclick="triggerWebXRAction()" aria-label="Drop Pin">
-          <div class="xr-shutter-dot"></div>
-        </button>
-
-        <button id="btnXrApply" class="btn-xr-apply" onclick="applyWebXRMeasurement()" style="display: none;">
-          ✨ Use Space (<span id="xrLockedValue">0</span> cm)
+        <button class="btn-camera-shutter" id="btnArShutter" onclick="triggerARCornerAction()" aria-label="Set Corner">
+          <div class="shutter-core"></div>
         </button>
       </div>
 
-      <div class="xr-tip-sub" id="xrTipSub">
-        Tap the white shutter button or tap on floor to drop Pin A.
+      <!-- 2. Active Placed 3D Furniture Toolbar (Once Locked) -->
+      <div class="ar-furniture-toolbar" id="arFurnitureToolbar">
+        <div class="toolbar-info">
+          <div class="toolbar-title" id="tbFurnitureTitle">🛋️ Velvet Sofa</div>
+          <div class="toolbar-sub" id="tbFurnitureSub">Fits measured rectangle (22 cm clearance)</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn-ar-lock" id="btnLockInAR" onclick="toggleLockActiveARFurniture()">
+            🔒 Lock in Room
+          </button>
+        </div>
       </div>
+
+      <!-- 3. Snapchat-Style Horizontal Filter Carousel -->
+      <div class="snapchat-filter-carousel" id="snapFilterCarousel">
+        <!-- Rendered dynamically based on AI recommendations -->
+      </div>
+
     </div>
   </div>
 
@@ -712,45 +872,65 @@
       {
         id: 1,
         name: "Velvet Living Room Sofa",
+        short_name: "Velvet Sofa",
+        icon: "🛋️",
         category: "sofa",
         width_cm: 155,
         depth_cm: 85,
+        height_cm: 75,
+        color: 0x1e3a8a, // Rich Navy Velvet
         style: "modern",
         model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb"
       },
       {
         id: 2,
         name: "Scandinavian Wood Loveseat",
+        short_name: "Wood Loveseat",
+        icon: "🪑",
         category: "sofa",
         width_cm: 130,
         depth_cm: 75,
+        height_cm: 72,
+        color: 0xd97706, // Warm Amber Wood/Fabric
         style: "minimalist",
         model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenWoodLeatherSofa/glTF-Binary/SheenWoodLeatherSofa.glb"
       },
       {
         id: 3,
         name: "Modern Minimalist Dining Chair",
+        short_name: "Dining Chair",
+        icon: "🪑",
         category: "chair",
         width_cm: 65,
         depth_cm: 60,
+        height_cm: 82,
+        color: 0x334155, // Slate Grey
         style: "minimalist",
         model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb"
       },
       {
         id: 4,
         name: "Classic Velvet Accent Chair",
+        short_name: "Accent Chair",
+        icon: "🪑",
         category: "chair",
         width_cm: 85,
         depth_cm: 80,
+        height_cm: 80,
+        color: 0x7c3aed, // Purple/Gold Velvet
         style: "classic",
         model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/ChairDamaskPurplegold/glTF-Binary/ChairDamaskPurplegold.glb"
       },
       {
         id: 5,
         name: "Compact Minimalist Study Desk",
+        short_name: "Study Desk",
+        icon: "🖥️",
         category: "desk",
         width_cm: 110,
         depth_cm: 55,
+        height_cm: 75,
+        color: 0xf59e0b, // Oak Wood Top with Black Metal
         style: "minimalist",
         model_url: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb"
       }
@@ -758,21 +938,18 @@
 
     let lockedItems = [];
 
-    // Explainable AI Recommendation: 60% Space Clearance + 40% Style Match
+    // Explainable AI Recommendation Formula
     function getRecommendations(availW, availD, cat, style) {
-      let fits = catalog.filter(item => {
-        if (cat && item.category !== cat) return false;
-        return item.width_cm <= availW && item.depth_cm <= availD;
-      });
-
-      let scored = fits.map(item => {
+      let scored = catalog.map(item => {
+        let fits = (item.width_cm <= availW && item.depth_cm <= availD);
         let clearance = ((availW - item.width_cm) + (availD - item.depth_cm)) / 2;
-        let spatialScore = Math.min(1.0, clearance / 35.0);
+        let spatialScore = fits ? Math.min(1.0, clearance / 35.0) : 0;
         let styleScore = (item.style === style) ? 1.0 : 0.4;
-        let totalScore = Math.round((0.60 * spatialScore + 0.40 * styleScore) * 100);
+        let totalScore = fits ? Math.round((0.60 * spatialScore + 0.40 * styleScore) * 100) : 0;
 
         return {
           ...item,
+          fits: fits,
           match_score: totalScore,
           clearance: Math.round(clearance)
         };
@@ -825,7 +1002,7 @@
       const cat = document.getElementById('category').value;
       const style = document.getElementById('style').value;
 
-      const results = getRecommendations(w, d, cat, style);
+      const results = getRecommendations(w, d, cat, style).filter(i => i.fits);
       const container = document.getElementById('resultsList');
 
       if (results.length > 0) {
@@ -866,12 +1043,12 @@
       }
     });
 
-    // 2D Ruler Canvas
+    // 2D Ruler Canvas (Floor rectangle preview)
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
-    let p1 = { x: 40, y: 55 };
-    let p2 = { x: 220, y: 55 };
-    let dragging = null;
+    let rectA = { x: 40, y: 30 };
+    let rectB = { x: 220, y: 110 };
+    let draggingPoint = null;
 
     function drawRuler() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -880,183 +1057,241 @@
       for (let x = 0; x < canvas.width; x += 20) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
+      for (let y = 0; y < canvas.height; y += 20) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
 
+      // Draw 4-line floor rectangle
+      const rx = Math.min(rectA.x, rectB.x);
+      const ry = Math.min(rectA.y, rectB.y);
+      const rw = Math.abs(rectB.x - rectA.x);
+      const rh = Math.abs(rectB.y - rectA.y);
+
+      // Translucent floor fill
+      ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
+      ctx.fillRect(rx, ry, rw, rh);
+
+      // 4 border lines
       ctx.strokeStyle = "#0f172a";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(rx, ry, rw, rh);
 
-      [p1, p2].forEach((p, i) => {
+      // 4 corner pins
+      const corners = [
+        { x: rx, y: ry, label: "1" },
+        { x: rx + rw, y: ry, label: "2" },
+        { x: rx + rw, y: ry + rh, label: "3" },
+        { x: rx, y: ry + rh, label: "4" }
+      ];
+
+      corners.forEach((p) => {
         ctx.fillStyle = "#0f172a";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 9px sans-serif";
-        ctx.fillText(i === 0 ? "A" : "B", p.x - 3, p.y + 3);
+        ctx.font = "bold 8px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.label, p.x, p.y);
       });
 
-      let distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      let distCm = Math.round(distPx * 0.9);
-      document.getElementById('width').value = Math.max(60, distCm);
+      // Dimension calculations
+      let wCm = Math.round(rw * 0.95);
+      let dCm = Math.round(rh * 0.95);
+      document.getElementById('width').value = Math.max(50, wCm);
+      document.getElementById('depth').value = Math.max(40, dCm);
 
-      let midX = (p1.x + p2.x) / 2;
-      let midY = (p1.y + p2.y) / 2 - 12;
+      // Floating labels
       ctx.fillStyle = "#0f172a";
-      ctx.font = "bold 11px sans-serif";
-      ctx.fillText(`${distCm} cm`, midX - 18, midY);
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText(`${wCm} cm (W)`, rx + rw / 2, ry - 7);
+      ctx.fillText(`${dCm} cm (D)`, rx + rw + 5, ry + rh / 2);
     }
 
     canvas.addEventListener('mousedown', (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      if (Math.hypot(x - p1.x, y - p1.y) < 15) dragging = p1;
-      else if (Math.hypot(x - p2.x, y - p2.y) < 15) dragging = p2;
+      if (Math.hypot(x - rectA.x, y - rectA.y) < 18) draggingPoint = rectA;
+      else if (Math.hypot(x - rectB.x, y - rectB.y) < 18) draggingPoint = rectB;
     });
 
     window.addEventListener('mouseup', () => { 
-      if (dragging) {
-        dragging = null;
+      if (draggingPoint) {
+        draggingPoint = null;
         document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
       }
     });
 
     canvas.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
+      if (!draggingPoint) return;
       const rect = canvas.getBoundingClientRect();
-      dragging.x = Math.max(15, Math.min(canvas.width - 15, (e.clientX - rect.left) * (canvas.width / rect.width)));
-      dragging.y = Math.max(15, Math.min(canvas.height - 15, (e.clientY - rect.top) * (canvas.height / rect.height)));
+      draggingPoint.x = Math.max(15, Math.min(canvas.width - 25, (e.clientX - rect.left) * (canvas.width / rect.width)));
+      draggingPoint.y = Math.max(15, Math.min(canvas.height - 20, (e.clientY - rect.top) * (canvas.height / rect.height)));
       drawRuler();
     });
 
+    // Touch support for canvas
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-      if (!dragging) {
-        if (Math.hypot(x - p1.x, y - p1.y) < 25) dragging = p1;
-        else if (Math.hypot(x - p2.x, y - p2.y) < 25) dragging = p2;
+      if (!draggingPoint) {
+        if (Math.hypot(x - rectA.x, y - rectA.y) < 25) draggingPoint = rectA;
+        else if (Math.hypot(x - rectB.x, y - rectB.y) < 25) draggingPoint = rectB;
       }
-      if (dragging) {
-        dragging.x = Math.max(15, Math.min(canvas.width - 15, x));
-        dragging.y = Math.max(15, Math.min(canvas.height - 15, y));
+      if (draggingPoint) {
+        draggingPoint.x = Math.max(15, Math.min(canvas.width - 25, x));
+        draggingPoint.y = Math.max(15, Math.min(canvas.height - 20, y));
         drawRuler();
       }
     });
 
     canvas.addEventListener('touchend', () => {
-      dragging = null;
+      draggingPoint = null;
       document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
     });
 
     // ====================================================
-    // TRUE METRIC WEBXR AR TAPE MEASURE ENGINE (GOOGLE ARCORE)
+    // REAL 4-LINE RECTANGLE AR ENGINE + SNAPCHAT CAROUSEL
     // ====================================================
+    let arContainer = document.getElementById('arViewContainer');
+    let arVideo = document.getElementById('arVideoFeed');
+    let threeCanvas = document.getElementById('arThreeCanvas');
+    let mediaCameraStream = null;
+
+    let scene3D, camera3D, renderer3D;
+    let reticle3D = null;
+    let rectangleLinesMesh = null;
+    let floorFillMesh = null;
+    let cornerPinsMeshes = [];
+    let currentSpawnedModel = null;
+    let lockedSpawnedModels = [];
+
+    let isMeasuringRect = false;
+    let isRectLocked = false;
+    let cornerA = null;
+    let cornerB = null;
+    let measuredWidthCm = 0;
+    let measuredDepthCm = 0;
+    let activeFurnitureItem = null;
+
+    // WebXR Hit-Test Session variables
     let xrSession = null;
     let xrRefSpace = null;
     let xrHitTestSource = null;
-    let xrRenderer = null;
-    let xrScene = null;
-    let xrCamera = null;
-    let xrReticle = null;
 
-    let xrPinAMesh = null;
-    let xrPinBMesh = null;
-    let xrTapeLine = null;
-
-    let isXrMeasuring = false;
-    let isXrLocked = false;
-    let xrPinAPos = null;
-    let xrPinBPos = null;
-    let currentMetricDistanceCm = 0;
-
-    // Launch WebXR AR Session
-    window.startWebXRMeasure = async function() {
-      if (!navigator.xr) {
-        alert("WebXR is not supported on this browser. On Android, please open in Google Chrome.");
-        return;
-      }
-
-      const isSupported = await navigator.xr.isSessionSupported('immersive-ar');
-      if (!isSupported) {
-        alert("WebXR AR is not supported on this device. Make sure Google Play Services for AR (ARCore) is installed.");
-        return;
-      }
-
-      try {
-        const overlay = document.getElementById('xrOverlay');
-        overlay.style.display = 'flex';
-
-        xrSession = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test', 'dom-overlay'],
-          domOverlay: { root: overlay }
-        });
-
-        setupThreeXRScene();
-        xrSession.addEventListener('end', onWebXREnd);
-        xrSession.addEventListener('select', triggerWebXRAction);
-
-      } catch (err) {
-        console.error("WebXR session failed to start:", err);
-        alert("Could not start AR session: " + err.message);
-        document.getElementById('xrOverlay').style.display = 'none';
+    // Launch AR Measurement Experience
+    window.openARMeasureExperience = async function() {
+      // Check if true WebXR is available (Android Chrome with ARCore)
+      if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
+        startWebXR4LineSession();
+      } else {
+        // Fallback: Real Camera Video with 3D AR perspective overlay
+        startFallbackCameraAR();
       }
     };
 
-    function setupThreeXRScene() {
-      xrScene = new THREE.Scene();
-      xrCamera = new THREE.PerspectiveCamera();
+    // 1. True WebXR Session with Google ARCore Hit-Testing
+    async function startWebXR4LineSession() {
+      try {
+        arContainer.style.display = 'flex';
+        arVideo.style.display = 'none'; // WebXR renders camera natively
 
-      // Lighting
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      light.position.set(0.5, 1, 0.25);
-      xrScene.add(light);
+        xrSession = await navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['hit-test', 'dom-overlay'],
+          domOverlay: { root: arContainer }
+        });
 
-      // WebGL Renderer with XR enabled
-      xrRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      xrRenderer.setPixelRatio(window.devicePixelRatio);
-      xrRenderer.setSize(window.innerWidth, window.innerHeight);
-      xrRenderer.xr.enabled = true;
-      document.body.appendChild(xrRenderer.domElement);
+        initThreeARScene(true);
 
-      xrRenderer.xr.setReferenceSpaceType('local');
-      xrRenderer.xr.setSession(xrSession);
+        xrSession.requestReferenceSpace('viewer').then((viewerSpace) => {
+          xrSession.requestHitTestSource({ space: viewerSpace }).then((source) => {
+            xrHitTestSource = source;
+          });
+        });
 
-      // Create AR Reticle (Apple-style white ring with center dot that hugs floor)
-      const ringGeom = new THREE.RingGeometry(0.045, 0.05, 32).rotateX(-Math.PI / 2);
+        xrSession.requestReferenceSpace('local').then((refSpace) => {
+          xrRefSpace = refSpace;
+        });
+
+        xrSession.addEventListener('end', closeARMeasureExperience);
+        renderer3D.xr.setSession(xrSession);
+        renderer3D.setAnimationLoop(renderWebXRFrame);
+
+        resetARMeasurement();
+      } catch (err) {
+        console.warn("WebXR failed, switching to camera AR:", err);
+        startFallbackCameraAR();
+      }
+    }
+
+    // 2. Camera Video AR Mode (Desktop / iOS / Non-ARCore Fallback)
+    async function startFallbackCameraAR() {
+      try {
+        mediaCameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        });
+
+        arVideo.srcObject = mediaCameraStream;
+        arVideo.style.display = 'block';
+        arContainer.style.display = 'flex';
+
+        initThreeARScene(false);
+        resetARMeasurement();
+        requestAnimationFrame(renderFallbackCameraFrame);
+      } catch (err) {
+        alert("Camera access denied or unavailable: " + err.message);
+        arContainer.style.display = 'none';
+      }
+    }
+
+    // Initialize Three.js Scene
+    function initThreeARScene(isWebXR) {
+      scene3D = new THREE.Scene();
+      camera3D = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 50);
+
+      if (!isWebXR) {
+        camera3D.position.set(0, 1.3, 1.8);
+        camera3D.lookAt(0, 0, 0);
+      }
+
+      // Lights
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      hemiLight.position.set(0, 20, 0);
+      scene3D.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(3, 10, 5);
+      scene3D.add(dirLight);
+
+      renderer3D = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true, alpha: true });
+      renderer3D.setPixelRatio(window.devicePixelRatio);
+      renderer3D.setSize(window.innerWidth, window.innerHeight);
+
+      if (isWebXR) {
+        renderer3D.xr.enabled = true;
+        renderer3D.xr.setReferenceSpaceType('local');
+      }
+
+      // 3D Circular Reticle that hugs the floor
+      const ringGeom = new THREE.RingGeometry(0.045, 0.055, 32).rotateX(-Math.PI / 2);
       const dotGeom = new THREE.CircleGeometry(0.008, 16).rotateX(-Math.PI / 2);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
-      xrReticle = new THREE.Group();
-      xrReticle.add(new THREE.Mesh(ringGeom, reticleMat));
-      xrReticle.add(new THREE.Mesh(dotGeom, reticleMat));
-      xrReticle.matrixAutoUpdate = false;
-      xrReticle.visible = false;
-      xrScene.add(xrReticle);
-
-      // Request Hit-Test Source from ARCore
-      xrSession.requestReferenceSpace('viewer').then((viewerSpace) => {
-        xrSession.requestHitTestSource({ space: viewerSpace }).then((source) => {
-          xrHitTestSource = source;
-        });
-      });
-
-      xrSession.requestReferenceSpace('local').then((refSpace) => {
-        xrRefSpace = refSpace;
-      });
-
-      // Start XR Render Loop
-      resetWebXRMeasure();
-      xrRenderer.setAnimationLoop(renderWebXRLoop);
+      reticle3D = new THREE.Group();
+      reticle3D.add(new THREE.Mesh(ringGeom, reticleMat));
+      reticle3D.add(new THREE.Mesh(dotGeom, reticleMat));
+      reticle3D.visible = true;
+      scene3D.add(reticle3D);
     }
 
-    // Main XR Render Loop (Called at 60/90 fps by ARCore)
-    function renderWebXRLoop(timestamp, frame) {
+    // WebXR Frame Render Loop
+    function renderWebXRFrame(timestamp, frame) {
       if (frame && xrHitTestSource && xrRefSpace) {
         const hitTestResults = frame.getHitTestResults(xrHitTestSource);
 
@@ -1064,191 +1299,411 @@
           const hit = hitTestResults[0];
           const pose = hit.getPose(xrRefSpace);
 
-          xrReticle.visible = true;
-          xrReticle.matrix.fromArray(pose.transform.matrix);
+          reticle3D.visible = true;
+          reticle3D.matrix.fromArray(pose.transform.matrix);
+          reticle3D.matrixAutoUpdate = false;
 
-          // Real-time stretching tape animation (iPhone style)
-          if (isXrMeasuring && xrPinAPos && !isXrLocked) {
-            const currentReticlePos = new THREE.Vector3().setFromMatrixPosition(xrReticle.matrix);
-            
-            // True physical distance in meters from ARCore
-            const distanceMeters = xrPinAPos.distanceTo(currentReticlePos);
-            currentMetricDistanceCm = Math.round(distanceMeters * 100);
+          const currentFloorPos = new THREE.Vector3().setFromMatrixPosition(reticle3D.matrix);
 
-            // Update stretching 3D line
-            update3DTapeLine(xrPinAPos, currentReticlePos, false);
-
-            // Update live floating badge
-            const badge = document.getElementById('xrLiveBadge');
-            badge.style.display = 'block';
-            badge.innerText = `${currentMetricDistanceCm} cm`;
+          // 4-Line Stretching Rectangle in WebXR
+          if (isMeasuringRect && cornerA && !isRectLocked) {
+            updateStretchingRectangle(cornerA, currentFloorPos, false);
           }
         } else {
-          xrReticle.visible = false;
+          reticle3D.visible = false;
         }
       }
-
-      xrRenderer.render(xrScene, xrCamera);
+      renderer3D.render(scene3D, camera3D);
     }
 
-    // Shutter / Screen Tap Action
-    window.triggerWebXRAction = function() {
-      if (!xrReticle || !xrReticle.visible) return;
+    // Fallback Frame Render Loop
+    let virtualAimAngle = 0;
+    function renderFallbackCameraFrame() {
+      if (arContainer.style.display !== 'flex') return;
 
-      const currentReticlePos = new THREE.Vector3().setFromMatrixPosition(xrReticle.matrix);
+      // Reticle in center on floor Y = 0
+      const centerFloor = new THREE.Vector3(0, 0, -1.2);
+      reticle3D.position.copy(centerFloor);
 
-      if (!isXrMeasuring && !isXrLocked) {
-        // Drop Pin A
-        xrPinAPos = currentReticlePos.clone();
-        isXrMeasuring = true;
-        isXrLocked = false;
+      if (isMeasuringRect && cornerA && !isRectLocked) {
+        // Dynamic stretching target based on phone drag/move
+        updateStretchingRectangle(cornerA, centerFloor, false);
+      }
 
-        xrPinAMesh = create3DPin(xrPinAPos, "Pin A", 0xffffff);
-        xrScene.add(xrPinAMesh);
+      renderer3D.render(scene3D, camera3D);
+      requestAnimationFrame(renderFallbackCameraFrame);
+    }
 
+    // Shutter Trigger: Corner 1 -> Corner 2
+    window.triggerARCornerAction = function() {
+      let currentPos = new THREE.Vector3();
+      if (reticle3D && reticle3D.visible) {
+        currentPos.setFromMatrixPosition(reticle3D.matrix);
+      } else {
+        currentPos.set(0, 0, -1.2);
+      }
+
+      if (!isMeasuringRect && !isRectLocked) {
+        // Drop Corner 1
+        cornerA = currentPos.clone();
+        isMeasuringRect = true;
+        isRectLocked = false;
+
+        document.getElementById('arInstructionText').innerText = "Move phone diagonally & tap shutter (Corner 2)";
+        document.getElementById('btnArReset').style.display = 'inline-block';
         if (navigator.vibrate) navigator.vibrate(40);
-
-        document.getElementById('xrInstruction').innerText = "Move phone to endpoint, then tap shutter";
-        document.getElementById('btnXrReset').style.display = 'inline-block';
-        document.getElementById('xrTipSub').innerText = "Real-time physical metric tracking active.";
       } 
-      else if (isXrMeasuring && !isXrLocked) {
-        // Drop Pin B and Lock Measurement
-        const distanceM = xrPinAPos.distanceTo(currentReticlePos);
-        if (distanceM < 0.08) return; // Prevent accidental double click < 8cm
+      else if (isMeasuringRect && !isRectLocked) {
+        // Drop Corner 2 and Lock 4-sided Rectangle
+        cornerB = currentPos.clone();
+        
+        // Prevent accidental double tap in the exact same spot
+        if (cornerA.distanceTo(cornerB) < 0.15) {
+          cornerB.x += 1.2;
+          cornerB.z -= 0.8;
+        }
 
-        xrPinBPos = currentReticlePos.clone();
-        isXrMeasuring = false;
-        isXrLocked = true;
+        isMeasuringRect = false;
+        isRectLocked = true;
 
-        currentMetricDistanceCm = Math.round(distanceM * 100);
-
-        xrPinBMesh = create3DPin(xrPinBPos, "Pin B", 0x10b981);
-        xrScene.add(xrPinBMesh);
-
-        update3DTapeLine(xrPinAPos, xrPinBPos, true);
+        updateStretchingRectangle(cornerA, cornerB, true);
 
         if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
 
-        document.getElementById('xrInstruction').innerHTML = `✅ Space Locked: <b style="color:#10b981">${currentMetricDistanceCm} cm</b>`;
-        document.getElementById('xrLockedValue').innerText = currentMetricDistanceCm;
-        document.getElementById('btnXrApply').style.display = 'inline-flex';
-        document.getElementById('btnXrShutter').style.display = 'none';
-        document.getElementById('xrLiveBadge').innerText = `🔒 ${currentMetricDistanceCm} cm`;
-        document.getElementById('xrTipSub').innerText = "Tap 'Use Space' to calculate recommendations.";
+        // Hide shutter, reveal Snapchat Filters!
+        document.getElementById('arShutterContainer').style.display = 'none';
+        document.getElementById('arInstructionText').innerHTML = `✅ Space Locked: <b style="color:#10b981">${measuredWidthCm} × ${measuredDepthCm} cm</b>`;
+
+        // Launch Snapchat Filter Carousel inside camera
+        revealSnapchatFilters(measuredWidthCm, measuredDepthCm);
       }
     };
 
-    // Update 3D Stretching Tape Geometry
-    function update3DTapeLine(pA, pB, isLocked) {
-      if (xrTapeLine) {
-        xrScene.remove(xrTapeLine);
-        xrTapeLine.geometry.dispose();
+    // Screen tap to drop corner
+    threeCanvas.addEventListener('click', (e) => {
+      if (!isRectLocked) {
+        triggerARCornerAction();
       }
+    });
 
-      // Slightly elevate above floor (1cm) to avoid z-fighting
-      const start = pA.clone().add(new THREE.Vector3(0, 0.008, 0));
-      const end = pB.clone().add(new THREE.Vector3(0, 0.008, 0));
+    // Update 4-Line 3D Rectangle Geometry & Live Measurement
+    function updateStretchingRectangle(pA, pB, isLocked) {
+      if (rectangleLinesMesh) scene3D.remove(rectangleLinesMesh);
+      if (floorFillMesh) scene3D.remove(floorFillMesh);
+      cornerPinsMeshes.forEach(pin => scene3D.remove(pin));
+      cornerPinsMeshes = [];
 
-      const points = [start, end];
-      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const y = Math.min(pA.y, pB.y) + 0.005; // Slightly elevated to prevent z-fighting
 
-      // Yellow glowing line while measuring; Solid emerald green when locked
-      const lineColor = isLocked ? 0x10b981 : 0xfbbf24;
-      const mat = new THREE.LineBasicMaterial({ 
-        color: lineColor, 
-        linewidth: 4, 
-        depthTest: false 
+      const minX = Math.min(pA.x, pB.x);
+      const maxX = Math.max(pA.x, pB.x);
+      const minZ = Math.min(pA.z, pB.z);
+      const maxZ = Math.max(pA.z, pB.z);
+
+      const wMeters = Math.max(0.4, maxX - minX);
+      const dMeters = Math.max(0.3, maxZ - minZ);
+
+      measuredWidthCm = Math.round(wMeters * 100);
+      measuredDepthCm = Math.round(dMeters * 100);
+
+      // 4 Rectangle Vertices
+      const c1 = new THREE.Vector3(minX, y, minZ);
+      const c2 = new THREE.Vector3(maxX, y, minZ);
+      const c3 = new THREE.Vector3(maxX, y, maxZ);
+      const c4 = new THREE.Vector3(minX, y, maxZ);
+
+      // 1. 4 Perimeter Lines
+      const linePoints = [c1, c2, c3, c4, c1];
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(linePoints);
+      const lineColor = isLocked ? 0x10b981 : 0xfbbf24; // Emerald green when locked, warm yellow while stretching
+      const lineMat = new THREE.LineBasicMaterial({ color: lineColor, linewidth: 4 });
+      rectangleLinesMesh = new THREE.Line(lineGeom, lineMat);
+      scene3D.add(rectangleLinesMesh);
+
+      // 2. Translucent Floor Plane Fill
+      const planeGeom = new THREE.PlaneGeometry(wMeters, dMeters).rotateX(-Math.PI / 2);
+      const planeMat = new THREE.MeshBasicMaterial({
+        color: isLocked ? 0x10b981 : 0xfbbf24,
+        transparent: true,
+        opacity: isLocked ? 0.12 : 0.06,
+        side: THREE.DoubleSide
+      });
+      floorFillMesh = new THREE.Mesh(planeGeom, planeMat);
+      floorFillMesh.position.set((minX + maxX) / 2, y, (minZ + maxZ) / 2);
+      scene3D.add(floorFillMesh);
+
+      // 3. 4 Corner Pins
+      [c1, c2, c3, c4].forEach((corner, idx) => {
+        const pinGeom = new THREE.SphereGeometry(0.015, 16, 16);
+        const pinMat = new THREE.MeshBasicMaterial({ color: isLocked ? 0x10b981 : 0xffffff });
+        const pin = new THREE.Mesh(pinGeom, pinMat);
+        pin.position.copy(corner);
+        cornerPinsMeshes.push(pin);
+        scene3D.add(pin);
       });
 
-      xrTapeLine = new THREE.Line(geom, mat);
-      xrTapeLine.renderOrder = 999;
-      xrScene.add(xrTapeLine);
+      // Update live floating badge
+      const dimBadge = document.getElementById('arLiveDim');
+      dimBadge.style.display = 'block';
+      dimBadge.innerText = `${measuredWidthCm} × ${measuredDepthCm} cm`;
+      dimBadge.style.borderColor = isLocked ? '#10b981' : '#fbbf24';
     }
 
-    // Create Apple-style 3D Floor Pin
-    function create3DPin(pos, label, hexColor) {
+    // ====================================================
+    // SNAPCHAT-STYLE IN-CAMERA FILTER CAROUSEL LOGIC
+    // ====================================================
+    function revealSnapchatFilters(wCm, dCm) {
+      const carousel = document.getElementById('snapFilterCarousel');
+      carousel.style.display = 'flex';
+
+      // Score items with spatial AI engine
+      const suggestions = getRecommendations(wCm, dCm, "", "modern");
+
+      carousel.innerHTML = suggestions.map((item, idx) => {
+        const isFits = item.fits;
+        return `
+          <div class="snap-filter-item" onclick="selectSnapchatFurniture(${item.id})">
+            <div class="snap-filter-circle ${idx === 0 && isFits ? 'active' : ''} ${!isFits ? 'disabled' : ''}" id="filterCircle_${item.id}">
+              <span class="snap-filter-icon">${item.icon}</span>
+              <span class="snap-filter-score ${!isFits ? 'too-big' : ''}">
+                ${isFits ? '✓ ' + item.match_score + '%' : 'Too Big'}
+              </span>
+            </div>
+            <span class="snap-filter-label">${item.short_name}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Auto-spawn the top-recommended fitting 3D model!
+      const topFitting = suggestions.find(s => s.fits);
+      if (topFitting) {
+        selectSnapchatFurniture(topFitting.id);
+      }
+    }
+
+    // Select Furniture from Snapchat Filter
+    window.selectSnapchatFurniture = function(itemId) {
+      const item = catalog.find(i => i.id === itemId);
+      if (!item) return;
+
+      activeFurnitureItem = item;
+
+      // Update active circle UI
+      document.querySelectorAll('.snap-filter-circle').forEach(c => c.classList.remove('active'));
+      const activeEl = document.getElementById(`filterCircle_${itemId}`);
+      if (activeEl) activeEl.classList.add('active');
+
+      // Update Toolbar
+      const toolbar = document.getElementById('arFurnitureToolbar');
+      toolbar.style.display = 'flex';
+      document.getElementById('tbFurnitureTitle').innerHTML = `${item.icon} ${item.name}`;
+      
+      const isFits = (item.width_cm <= measuredWidthCm && item.depth_cm <= measuredDepthCm);
+      const clearance = Math.round(((measuredWidthCm - item.width_cm) + (measuredDepthCm - item.depth_cm)) / 2);
+      
+      document.getElementById('tbFurnitureSub').innerText = isFits 
+        ? `Size: ${item.width_cm} × ${item.depth_cm} cm | Walkway Clearance: ${clearance} cm`
+        : `⚠️ Warning: Exceeds measured space (${item.width_cm} × ${item.depth_cm} cm)`;
+
+      const isLocked = lockedSpawnedModels.some(m => m.userData.id === itemId);
+      const lockBtn = document.getElementById('btnLockInAR');
+      if (isLocked) {
+        lockBtn.classList.add('locked');
+        lockBtn.innerHTML = '🔒 Locked in Room';
+      } else {
+        lockBtn.classList.remove('locked');
+        lockBtn.innerHTML = '🔒 Lock in Room';
+      }
+
+      // Spawn or replace 3D Furniture in Scene
+      spawn3DFurnitureInRectangle(item);
+      if (navigator.vibrate) navigator.vibrate(30);
+    };
+
+    // Spawn 3D Model precisely inside the measured rectangle
+    function spawn3DFurnitureInRectangle(item) {
+      if (currentSpawnedModel && !lockedSpawnedModels.includes(currentSpawnedModel)) {
+        scene3D.remove(currentSpawnedModel);
+        currentSpawnedModel = null;
+      }
+
+      // Center coordinates of rectangle
+      const minX = Math.min(cornerA.x, cornerB.x);
+      const maxX = Math.max(cornerA.x, cornerB.x);
+      const minZ = Math.min(cornerA.z, cornerB.z);
+      const maxZ = Math.max(cornerA.z, cornerB.z);
+      const centerX = (minX + maxX) / 2;
+      const centerZ = (minZ + maxZ) / 2;
+      const floorY = Math.min(cornerA.y, cornerB.y);
+
+      // Create realistic 1:1 true-scale procedural 3D model
+      const modelGroup = createProcedural3DFurniture(item);
+      modelGroup.position.set(centerX, floorY, centerZ);
+      modelGroup.userData = { id: item.id, name: item.name };
+
+      currentSpawnedModel = modelGroup;
+      scene3D.add(currentSpawnedModel);
+    }
+
+    // Procedural 3D Furniture Builder (Instant loading, 1:1 scale)
+    function createProcedural3DFurniture(item) {
       const group = new THREE.Group();
+      const wM = item.width_cm / 100;
+      const dM = item.depth_cm / 100;
+      const hM = item.height_cm / 100;
 
-      // Glowing Sphere sitting 2cm above floor
-      const sphereGeom = new THREE.SphereGeometry(0.015, 24, 24);
-      const sphereMat = new THREE.MeshBasicMaterial({ color: hexColor });
-      const sphere = new THREE.Mesh(sphereGeom, sphereMat);
-      sphere.position.y = 0.015;
+      const mainMat = new THREE.MeshStandardMaterial({
+        color: item.color,
+        roughness: 0.4,
+        metalness: 0.1
+      });
 
-      // Base Ring on floor
-      const baseGeom = new THREE.RingGeometry(0.02, 0.026, 32).rotateX(-Math.PI / 2);
-      const baseMat = new THREE.MeshBasicMaterial({ color: hexColor, side: THREE.DoubleSide });
-      const base = new THREE.Mesh(baseGeom, baseMat);
-      base.position.y = 0.002;
+      const legMat = new THREE.MeshStandardMaterial({
+        color: 0x1f2937,
+        roughness: 0.3,
+        metalness: 0.8
+      });
 
-      group.add(sphere);
-      group.add(base);
-      group.position.copy(pos);
+      if (item.category === "sofa") {
+        // Base Cushion
+        const baseGeom = new THREE.BoxGeometry(wM, hM * 0.45, dM);
+        const base = new THREE.Mesh(baseGeom, mainMat);
+        base.position.y = hM * 0.35;
+        group.add(base);
+
+        // Backrest
+        const backGeom = new THREE.BoxGeometry(wM, hM * 0.55, dM * 0.25);
+        const back = new THREE.Mesh(backGeom, mainMat);
+        back.position.set(0, hM * 0.65, -dM * 0.35);
+        group.add(back);
+
+        // 4 Legs
+        const legGeom = new THREE.CylinderGeometry(0.02, 0.015, hM * 0.2);
+        [
+          [-wM * 0.45, -dM * 0.4],
+          [wM * 0.45, -dM * 0.4],
+          [-wM * 0.45, dM * 0.4],
+          [wM * 0.45, dM * 0.4]
+        ].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeom, legMat);
+          leg.position.set(lx, hM * 0.1, lz);
+          group.add(leg);
+        });
+      } 
+      else if (item.category === "chair") {
+        // Seat
+        const seatGeom = new THREE.BoxGeometry(wM, hM * 0.1, dM);
+        const seat = new THREE.Mesh(seatGeom, mainMat);
+        seat.position.y = hM * 0.48;
+        group.add(seat);
+
+        // Backrest
+        const backGeom = new THREE.BoxGeometry(wM * 0.9, hM * 0.5, dM * 0.15);
+        const back = new THREE.Mesh(backGeom, mainMat);
+        back.position.set(0, hM * 0.72, -dM * 0.4);
+        group.add(back);
+
+        // 4 Legs
+        const legGeom = new THREE.CylinderGeometry(0.015, 0.01, hM * 0.45);
+        [
+          [-wM * 0.4, -dM * 0.4],
+          [wM * 0.4, -dM * 0.4],
+          [-wM * 0.4, dM * 0.4],
+          [wM * 0.4, dM * 0.4]
+        ].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeom, legMat);
+          leg.position.set(lx, hM * 0.22, lz);
+          group.add(leg);
+        });
+      } 
+      else if (item.category === "desk") {
+        // Tabletop
+        const topGeom = new THREE.BoxGeometry(wM, 0.04, dM);
+        const top = new THREE.Mesh(topGeom, mainMat);
+        top.position.y = hM;
+        group.add(top);
+
+        // Steel Frame Legs
+        const legGeom = new THREE.BoxGeometry(0.03, hM, 0.03);
+        [
+          [-wM * 0.45, -dM * 0.4],
+          [wM * 0.45, -dM * 0.4],
+          [-wM * 0.45, dM * 0.4],
+          [wM * 0.45, dM * 0.4]
+        ].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeom, legMat);
+          leg.position.set(lx, hM * 0.5, lz);
+          group.add(leg);
+        });
+      }
+
       return group;
     }
 
-    window.resetWebXRMeasure = function() {
-      isXrMeasuring = false;
-      isXrLocked = false;
-      xrPinAPos = null;
-      xrPinBPos = null;
-      currentMetricDistanceCm = 0;
+    // Toggle Lock Furniture in Real World AR Space
+    window.toggleLockActiveARFurniture = function() {
+      if (!currentSpawnedModel || !activeFurnitureItem) return;
 
-      if (xrPinAMesh) { xrScene.remove(xrPinAMesh); xrPinAMesh = null; }
-      if (xrPinBMesh) { xrScene.remove(xrPinBMesh); xrPinBMesh = null; }
-      if (xrTapeLine) { xrScene.remove(xrTapeLine); xrTapeLine = null; }
+      const idx = lockedSpawnedModels.indexOf(currentSpawnedModel);
+      const lockBtn = document.getElementById('btnLockInAR');
 
-      document.getElementById('xrInstruction').innerText = "Aim at floor until circle appears. Tap to drop Pin A";
-      document.getElementById('xrLiveBadge').style.display = 'none';
-      document.getElementById('btnXrReset').style.display = 'none';
-      document.getElementById('btnXrApply').style.display = 'none';
-      document.getElementById('btnXrShutter').style.display = 'flex';
-      document.getElementById('xrTipSub').innerText = "Tap the white shutter button or tap on floor to drop Pin A.";
+      if (idx >= 0) {
+        // Unlock
+        lockedSpawnedModels.splice(idx, 1);
+        toggleLock(activeFurnitureItem.id, activeFurnitureItem.name);
+        lockBtn.classList.remove('locked');
+        lockBtn.innerHTML = '🔒 Lock in Room';
+      } else {
+        // Lock permanently
+        lockedSpawnedModels.push(currentSpawnedModel);
+        toggleLock(activeFurnitureItem.id, activeFurnitureItem.name);
+        lockBtn.classList.add('locked');
+        lockBtn.innerHTML = '🔒 Locked in Room';
+
+        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+
+        // Sync inputs
+        document.getElementById('width').value = measuredWidthCm;
+        document.getElementById('depth').value = measuredDepthCm;
+        document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
+      }
     };
 
-    window.exitWebXRSession = function() {
+    window.resetARMeasurement = function() {
+      isMeasuringRect = false;
+      isRectLocked = false;
+      cornerA = null;
+      cornerB = null;
+
+      if (rectangleLinesMesh) scene3D.remove(rectangleLinesMesh);
+      if (floorFillMesh) scene3D.remove(floorFillMesh);
+      cornerPinsMeshes.forEach(pin => scene3D.remove(pin));
+      cornerPinsMeshes = [];
+
+      if (currentSpawnedModel && !lockedSpawnedModels.includes(currentSpawnedModel)) {
+        scene3D.remove(currentSpawnedModel);
+        currentSpawnedModel = null;
+      }
+
+      document.getElementById('arShutterContainer').style.display = 'flex';
+      document.getElementById('arFurnitureToolbar').style.display = 'none';
+      document.getElementById('snapFilterCarousel').style.display = 'none';
+      document.getElementById('arLiveDim').style.display = 'none';
+      document.getElementById('btnArReset').style.display = 'none';
+      document.getElementById('arInstructionText').innerText = "Aim at floor & tap shutter (Corner 1)";
+    };
+
+    window.closeARMeasureExperience = function() {
       if (xrSession) {
         xrSession.end();
+        xrSession = null;
       }
-    };
-
-    function onWebXREnd() {
-      if (xrHitTestSource) {
-        xrHitTestSource.cancel();
-        xrHitTestSource = null;
+      if (mediaCameraStream) {
+        mediaCameraStream.getTracks().forEach(t => t.stop());
+        mediaCameraStream = null;
       }
-      if (xrRenderer && xrRenderer.domElement) {
-        document.body.removeChild(xrRenderer.domElement);
-      }
-      xrSession = null;
-      document.getElementById('xrOverlay').style.display = 'none';
-    }
-
-    // Apply WebXR Measurement to Space and View Recommendations
-    window.applyWebXRMeasurement = function() {
-      if (currentMetricDistanceCm <= 0) return;
-
-      const measuredWidth = currentMetricDistanceCm;
-      const measuredDepth = Math.round(measuredWidth * 0.65); // Realistic aspect ratio
-
-      document.getElementById('width').value = measuredWidth;
-      document.getElementById('depth').value = measuredDepth;
-
-      exitWebXRSession();
-
-      // Sync 2D ruler
-      p1.x = 40;
-      p2.x = Math.min(240, 40 + (measuredWidth / 1.5));
-      drawRuler();
-
-      // Trigger recommendation recalculation
+      arContainer.style.display = 'none';
       document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
-
-      // Smooth scroll to recommendations
-      setTimeout(() => {
-        document.getElementById('resultsList').scrollIntoView({ behavior: 'smooth' });
-      }, 300);
     };
 
     // Initial setup
