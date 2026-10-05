@@ -23,7 +23,6 @@
       --primary-hover: #1e293b;
       --accent: #10b981;
       --accent-soft: #ecfdf5;
-      --accent-gold: #f59e0b;
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
       --shadow-md: 0 4px 20px -2px rgba(0,0,0,0.06);
       --shadow-lg: 0 10px 30px -4px rgba(0,0,0,0.1);
@@ -395,7 +394,7 @@
     }
 
     /* ==================================================== */
-    /* FULL SCREEN AR VIEW (WEBXR & FALLBACK CAMERA)         */
+    /* FULL SCREEN AR VIEW (A -> B -> C -> D DRAWING)       */
     /* ==================================================== */
     #arViewContainer {
       position: fixed;
@@ -431,7 +430,7 @@
       pointer-events: auto;
     }
 
-    /* Top HUD Instruction Pill */
+    /* Top HUD Instruction & Progress Pill */
     .ar-hud-top {
       position: absolute;
       top: 18px;
@@ -455,25 +454,33 @@
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.35);
       border: 1px solid rgba(255,255,255,0.15);
       max-width: 82%;
     }
 
-    .ar-indicator-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #10b981;
-      display: inline-block;
-      animation: pulse-ring 1.4s infinite;
+    .point-step-indicators {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    @keyframes pulse-ring {
-      0% { transform: scale(0.9); opacity: 0.7; }
-      50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.9); opacity: 0.7; }
+    .point-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.2s;
+    }
+
+    .point-dot.active {
+      background: #fbbf24;
+      transform: scale(1.3);
+    }
+
+    .point-dot.completed {
+      background: #10b981;
     }
 
     .ar-close-btn {
@@ -495,14 +502,14 @@
     /* Live Floating Dimension Badge */
     .ar-floating-dim {
       position: absolute;
-      top: 50%;
+      top: 45%;
       left: 50%;
-      transform: translate(-50%, -130%);
+      transform: translate(-50%, -100%);
       background: #ffffff;
       color: #0f172a;
-      padding: 7px 18px;
+      padding: 6px 16px;
       border-radius: 24px;
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 800;
       box-shadow: 0 6px 25px rgba(0,0,0,0.4);
       border: 2px solid #fbbf24;
@@ -525,7 +532,7 @@
       align-items: center;
       padding-bottom: 24px;
       pointer-events: auto;
-      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
     }
 
     /* Shutter Button when Measuring */
@@ -581,7 +588,7 @@
       display: none;
       width: 90%;
       max-width: 440px;
-      background: rgba(15, 23, 42, 0.88);
+      background: rgba(15, 23, 42, 0.9);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255,255,255,0.2);
@@ -747,13 +754,13 @@
       <!-- Distance Measurement Tool -->
       <div class="measure-box">
         <div class="measure-header">
-          <span class="measure-title">4-Line AR Floor Boundary</span>
+          <span class="measure-title">Custom 4-Point Boundary (A→B→C→D)</span>
           <button type="button" class="cam-btn" onclick="openARMeasureExperience()">
-            📏 Measure 4-Line Space
+            📏 Start AR Boundary
           </button>
         </div>
         <canvas id="rulerCanvas" width="280" height="140"></canvas>
-        <div class="ruler-tip">Measure 4-sided floor rectangle in AR. Instant Snapchat filters appear right in camera!</div>
+        <div class="ruler-tip">Tap points A → B → C → D on floor. Boundary & 3D furniture stay anchored in physical room!</div>
       </div>
 
       <form id="recommendForm">
@@ -814,23 +821,28 @@
   </div>
 
   <!-- ==================================================== -->
-  <!-- FULL SCREEN AR VIEW (4-LINE RECTANGLE + SNAPCHAT UI) -->
+  <!-- FULL SCREEN AR VIEW (A -> B -> C -> D BOUNDARY)      -->
   <!-- ==================================================== -->
   <div id="arViewContainer">
     <video id="arVideoFeed" autoplay playsinline muted></video>
     <canvas id="arThreeCanvas"></canvas>
 
-    <!-- Top HUD Instruction Pill -->
+    <!-- Top HUD Instruction Pill with 4 Progress Dots -->
     <div class="ar-hud-top">
       <div class="ar-hud-pill">
-        <span class="ar-indicator-dot"></span>
-        <span id="arInstructionText">Aim at floor & tap shutter (Corner 1)</span>
+        <div class="point-step-indicators">
+          <div class="point-dot active" id="dotA"></div>
+          <div class="point-dot" id="dotB"></div>
+          <div class="point-dot" id="dotC"></div>
+          <div class="point-dot" id="dotD"></div>
+        </div>
+        <span id="arInstructionText">Aim at floor & tap shutter for Point A</span>
       </div>
       <button class="ar-close-btn" onclick="closeARMeasureExperience()" aria-label="Close AR">✕</button>
     </div>
 
     <!-- Live Dimension Pill -->
-    <div class="ar-floating-dim" id="arLiveDim">160 × 90 cm</div>
+    <div class="ar-floating-dim" id="arLiveDim">160 cm</div>
 
     <!-- Bottom Camera Controls & Snapchat Filters -->
     <div class="ar-camera-bottom">
@@ -840,7 +852,7 @@
         <button id="btnArReset" class="btn-ar-reset" onclick="resetARMeasurement()" style="display: none;">
           🔄 Reset
         </button>
-        <button class="btn-camera-shutter" id="btnArShutter" onclick="triggerARCornerAction()" aria-label="Set Corner">
+        <button class="btn-camera-shutter" id="btnArShutter" onclick="triggerARPointAction()" aria-label="Set Point">
           <div class="shutter-core"></div>
         </button>
       </div>
@@ -849,7 +861,7 @@
       <div class="ar-furniture-toolbar" id="arFurnitureToolbar">
         <div class="toolbar-info">
           <div class="toolbar-title" id="tbFurnitureTitle">🛋️ Velvet Sofa</div>
-          <div class="toolbar-sub" id="tbFurnitureSub">Fits measured rectangle (22 cm clearance)</div>
+          <div class="toolbar-sub" id="tbFurnitureSub">Fits measured boundary (22 cm clearance)</div>
         </div>
         <div class="toolbar-actions">
           <button class="btn-ar-lock" id="btnLockInAR" onclick="toggleLockActiveARFurniture()">
@@ -1043,11 +1055,13 @@
       }
     });
 
-    // 2D Ruler Canvas (Floor rectangle preview)
+    // 2D Ruler Canvas (4-point polygon A -> B -> C -> D)
     const canvas = document.getElementById('rulerCanvas');
     const ctx = canvas.getContext('2d');
-    let rectA = { x: 40, y: 30 };
-    let rectB = { x: 220, y: 110 };
+    let pA = { x: 40, y: 35, label: "A" };
+    let pB = { x: 220, y: 35, label: "B" };
+    let pC = { x: 220, y: 110, label: "C" };
+    let pD = { x: 40, y: 110, label: "D" };
     let draggingPoint = null;
 
     function drawRuler() {
@@ -1061,60 +1075,59 @@
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // Draw 4-line floor rectangle
-      const rx = Math.min(rectA.x, rectB.x);
-      const ry = Math.min(rectA.y, rectB.y);
-      const rw = Math.abs(rectB.x - rectA.x);
-      const rh = Math.abs(rectB.y - rectA.y);
+      // Draw closed 4-sided polygon
+      ctx.beginPath();
+      ctx.moveTo(pA.x, pA.y);
+      ctx.lineTo(pB.x, pB.y);
+      ctx.lineTo(pC.x, pC.y);
+      ctx.lineTo(pD.x, pD.y);
+      ctx.closePath();
 
       // Translucent floor fill
       ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
-      ctx.fillRect(rx, ry, rw, rh);
+      ctx.fill();
 
-      // 4 border lines
+      // 4 perimeter border lines
       ctx.strokeStyle = "#0f172a";
       ctx.lineWidth = 2.5;
-      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.stroke();
 
-      // 4 corner pins
-      const corners = [
-        { x: rx, y: ry, label: "1" },
-        { x: rx + rw, y: ry, label: "2" },
-        { x: rx + rw, y: ry + rh, label: "3" },
-        { x: rx, y: ry + rh, label: "4" }
-      ];
-
-      corners.forEach((p) => {
+      // 4 Corner Pins
+      [pA, pB, pC, pD].forEach((p) => {
         ctx.fillStyle = "#0f172a";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 8px sans-serif";
+        ctx.font = "bold 9px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(p.label, p.x, p.y);
       });
 
-      // Dimension calculations
-      let wCm = Math.round(rw * 0.95);
-      let dCm = Math.round(rh * 0.95);
+      // Calculate width (A to B) and depth (B to C)
+      let wPx = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+      let dPx = Math.hypot(pC.x - pB.x, pC.y - pB.y);
+      let wCm = Math.round(wPx * 0.92);
+      let dCm = Math.round(dPx * 0.92);
+
       document.getElementById('width').value = Math.max(50, wCm);
       document.getElementById('depth').value = Math.max(40, dCm);
 
-      // Floating labels
+      // Edge labels
       ctx.fillStyle = "#0f172a";
       ctx.font = "bold 10px sans-serif";
-      ctx.fillText(`${wCm} cm (W)`, rx + rw / 2, ry - 7);
-      ctx.fillText(`${dCm} cm (D)`, rx + rw + 5, ry + rh / 2);
+      ctx.fillText(`${wCm} cm (A→B)`, (pA.x + pB.x) / 2, (pA.y + pB.y) / 2 - 8);
+      ctx.fillText(`${dCm} cm (B→C)`, (pB.x + pC.x) / 2 + 15, (pB.y + pC.y) / 2);
     }
 
     canvas.addEventListener('mousedown', (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) * (canvas.width / rect.width);
       const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-      if (Math.hypot(x - rectA.x, y - rectA.y) < 18) draggingPoint = rectA;
-      else if (Math.hypot(x - rectB.x, y - rectB.y) < 18) draggingPoint = rectB;
+      [pA, pB, pC, pD].forEach(p => {
+        if (Math.hypot(x - p.x, y - p.y) < 18) draggingPoint = p;
+      });
     });
 
     window.addEventListener('mouseup', () => { 
@@ -1132,7 +1145,6 @@
       drawRuler();
     });
 
-    // Touch support for canvas
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
@@ -1140,8 +1152,9 @@
       const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
       if (!draggingPoint) {
-        if (Math.hypot(x - rectA.x, y - rectA.y) < 25) draggingPoint = rectA;
-        else if (Math.hypot(x - rectB.x, y - rectB.y) < 25) draggingPoint = rectB;
+        [pA, pB, pC, pD].forEach(p => {
+          if (Math.hypot(x - p.x, y - p.y) < 25) draggingPoint = p;
+        });
       }
       if (draggingPoint) {
         draggingPoint.x = Math.max(15, Math.min(canvas.width - 25, x));
@@ -1156,7 +1169,8 @@
     });
 
     // ====================================================
-    // REAL 4-LINE RECTANGLE AR ENGINE + SNAPCHAT CAROUSEL
+    // POINT-BY-POINT BOUNDARY (A -> B -> C -> D) AR ENGINE
+    // WITH ABSOLUTE WORLD ANCHORING (POINTS DO NOT MOVE!)
     // ====================================================
     let arContainer = document.getElementById('arViewContainer');
     let arVideo = document.getElementById('arVideoFeed');
@@ -1165,41 +1179,41 @@
 
     let scene3D, camera3D, renderer3D;
     let reticle3D = null;
-    let rectangleLinesMesh = null;
-    let floorFillMesh = null;
-    let cornerPinsMeshes = [];
+
+    // Boundary World Geometry
+    let boundaryPoints = []; // Array of THREE.Vector3 stored in true World Space
+    let activeLineMesh = null; // Live line from last placed point to reticle
+    let lockedPerimeterMesh = null; // Locked lines
+    let floorPolygonMesh = null; // Translucent floor fill
+    let pinMeshes = []; // World pin spheres
+
+    let isBoundaryComplete = false;
     let currentSpawnedModel = null;
     let lockedSpawnedModels = [];
-
-    let isMeasuringRect = false;
-    let isRectLocked = false;
-    let cornerA = null;
-    let cornerB = null;
-    let measuredWidthCm = 0;
-    let measuredDepthCm = 0;
     let activeFurnitureItem = null;
 
-    // WebXR Hit-Test Session variables
+    let measuredWidthCm = 0;
+    let measuredDepthCm = 0;
+
+    // WebXR Session variables
     let xrSession = null;
     let xrRefSpace = null;
     let xrHitTestSource = null;
 
     // Launch AR Measurement Experience
     window.openARMeasureExperience = async function() {
-      // Check if true WebXR is available (Android Chrome with ARCore)
       if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
-        startWebXR4LineSession();
+        startWebXRPointSession();
       } else {
-        // Fallback: Real Camera Video with 3D AR perspective overlay
-        startFallbackCameraAR();
+        startFallbackCameraPointAR();
       }
     };
 
-    // 1. True WebXR Session with Google ARCore Hit-Testing
-    async function startWebXR4LineSession() {
+    // 1. True WebXR Session (Google ARCore) with Real World Anchors
+    async function startWebXRPointSession() {
       try {
         arContainer.style.display = 'flex';
-        arVideo.style.display = 'none'; // WebXR renders camera natively
+        arVideo.style.display = 'none';
 
         xrSession = await navigator.xr.requestSession('immersive-ar', {
           requiredFeatures: ['hit-test', 'dom-overlay'],
@@ -1214,23 +1228,24 @@
           });
         });
 
+        // Use 'local' reference space so all objects are locked in Physical World Space!
         xrSession.requestReferenceSpace('local').then((refSpace) => {
           xrRefSpace = refSpace;
         });
 
         xrSession.addEventListener('end', closeARMeasureExperience);
         renderer3D.xr.setSession(xrSession);
-        renderer3D.setAnimationLoop(renderWebXRFrame);
+        renderer3D.setAnimationLoop(renderWebXRPointFrame);
 
         resetARMeasurement();
       } catch (err) {
         console.warn("WebXR failed, switching to camera AR:", err);
-        startFallbackCameraAR();
+        startFallbackCameraPointAR();
       }
     }
 
-    // 2. Camera Video AR Mode (Desktop / iOS / Non-ARCore Fallback)
-    async function startFallbackCameraAR() {
+    // 2. Camera Video Mode (Fallback)
+    async function startFallbackCameraPointAR() {
       try {
         mediaCameraStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -1243,7 +1258,7 @@
 
         initThreeARScene(false);
         resetARMeasurement();
-        requestAnimationFrame(renderFallbackCameraFrame);
+        requestAnimationFrame(renderFallbackCameraPointFrame);
       } catch (err) {
         alert("Camera access denied or unavailable: " + err.message);
         arContainer.style.display = 'none';
@@ -1256,7 +1271,7 @@
       camera3D = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 50);
 
       if (!isWebXR) {
-        camera3D.position.set(0, 1.3, 1.8);
+        camera3D.position.set(0, 1.4, 2.0);
         camera3D.lookAt(0, 0, 0);
       }
 
@@ -1265,7 +1280,7 @@
       hemiLight.position.set(0, 20, 0);
       scene3D.add(hemiLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
       dirLight.position.set(3, 10, 5);
       scene3D.add(dirLight);
 
@@ -1291,7 +1306,7 @@
     }
 
     // WebXR Frame Render Loop
-    function renderWebXRFrame(timestamp, frame) {
+    function renderWebXRPointFrame(timestamp, frame) {
       if (frame && xrHitTestSource && xrRefSpace) {
         const hitTestResults = frame.getHitTestResults(xrHitTestSource);
 
@@ -1303,11 +1318,11 @@
           reticle3D.matrix.fromArray(pose.transform.matrix);
           reticle3D.matrixAutoUpdate = false;
 
-          const currentFloorPos = new THREE.Vector3().setFromMatrixPosition(reticle3D.matrix);
+          const currentReticlePos = new THREE.Vector3().setFromMatrixPosition(reticle3D.matrix);
 
-          // 4-Line Stretching Rectangle in WebXR
-          if (isMeasuringRect && cornerA && !isRectLocked) {
-            updateStretchingRectangle(cornerA, currentFloorPos, false);
+          // Update live stretching line from last placed point to current reticle
+          if (boundaryPoints.length > 0 && boundaryPoints.length < 4 && !isBoundaryComplete) {
+            updateLiveStretchingLine(boundaryPoints[boundaryPoints.length - 1], currentReticlePos);
           }
         } else {
           reticle3D.visible = false;
@@ -1317,25 +1332,28 @@
     }
 
     // Fallback Frame Render Loop
-    let virtualAimAngle = 0;
-    function renderFallbackCameraFrame() {
+    function renderFallbackCameraPointFrame() {
       if (arContainer.style.display !== 'flex') return;
 
-      // Reticle in center on floor Y = 0
       const centerFloor = new THREE.Vector3(0, 0, -1.2);
       reticle3D.position.copy(centerFloor);
 
-      if (isMeasuringRect && cornerA && !isRectLocked) {
-        // Dynamic stretching target based on phone drag/move
-        updateStretchingRectangle(cornerA, centerFloor, false);
+      if (boundaryPoints.length > 0 && boundaryPoints.length < 4 && !isBoundaryComplete) {
+        updateLiveStretchingLine(boundaryPoints[boundaryPoints.length - 1], centerFloor);
       }
 
       renderer3D.render(scene3D, camera3D);
-      requestAnimationFrame(renderFallbackCameraFrame);
+      requestAnimationFrame(renderFallbackCameraPointFrame);
     }
 
-    // Shutter Trigger: Corner 1 -> Corner 2
-    window.triggerARCornerAction = function() {
+    // ====================================================
+    // POINT-BY-POINT BOUNDARY WORKFLOW: A -> B -> C -> D
+    // ====================================================
+    const pointLabels = ["A", "B", "C", "D"];
+
+    window.triggerARPointAction = function() {
+      if (isBoundaryComplete) return;
+
       let currentPos = new THREE.Vector3();
       if (reticle3D && reticle3D.visible) {
         currentPos.setFromMatrixPosition(reticle3D.matrix);
@@ -1343,120 +1361,206 @@
         currentPos.set(0, 0, -1.2);
       }
 
-      if (!isMeasuringRect && !isRectLocked) {
-        // Drop Corner 1
-        cornerA = currentPos.clone();
-        isMeasuringRect = true;
-        isRectLocked = false;
-
-        document.getElementById('arInstructionText').innerText = "Move phone diagonally & tap shutter (Corner 2)";
-        document.getElementById('btnArReset').style.display = 'inline-block';
-        if (navigator.vibrate) navigator.vibrate(40);
-      } 
-      else if (isMeasuringRect && !isRectLocked) {
-        // Drop Corner 2 and Lock 4-sided Rectangle
-        cornerB = currentPos.clone();
-        
-        // Prevent accidental double tap in the exact same spot
-        if (cornerA.distanceTo(cornerB) < 0.15) {
-          cornerB.x += 1.2;
-          cornerB.z -= 0.8;
+      // Check distance from previous point to avoid zero-distance double tap
+      if (boundaryPoints.length > 0) {
+        const lastPt = boundaryPoints[boundaryPoints.length - 1];
+        if (lastPt.distanceTo(currentPos) < 0.10) {
+          // Add default offset if user tapped in place
+          if (boundaryPoints.length === 1) currentPos.x += 1.4;
+          else if (boundaryPoints.length === 2) currentPos.z -= 0.9;
+          else if (boundaryPoints.length === 3) currentPos.x -= 1.4;
         }
+      }
 
-        isMeasuringRect = false;
-        isRectLocked = true;
+      // Store in True World Space Coordinates (CLONED, NOT TIED TO RETICLE)
+      const worldPoint = currentPos.clone();
+      worldPoint.y = (boundaryPoints.length > 0) ? boundaryPoints[0].y : worldPoint.y; // Keep level on floor plane
+      boundaryPoints.push(worldPoint);
 
-        updateStretchingRectangle(cornerA, cornerB, true);
+      const idx = boundaryPoints.length - 1;
+      const label = pointLabels[idx];
 
-        if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      // Spawn Permanent World Pin
+      createPermanentWorldPin(worldPoint, label);
 
-        // Hide shutter, reveal Snapchat Filters!
-        document.getElementById('arShutterContainer').style.display = 'none';
-        document.getElementById('arInstructionText').innerHTML = `✅ Space Locked: <b style="color:#10b981">${measuredWidthCm} × ${measuredDepthCm} cm</b>`;
+      if (navigator.vibrate) navigator.vibrate(40);
+      document.getElementById('btnArReset').style.display = 'inline-block';
 
-        // Launch Snapchat Filter Carousel inside camera
-        revealSnapchatFilters(measuredWidthCm, measuredDepthCm);
+      // Update step progress dots & instructions
+      updateStepUI(idx);
+
+      // Rebuild and Lock completed lines
+      renderLockedBoundaryLines();
+
+      // Check if 4 points are placed (A, B, C, D)
+      if (boundaryPoints.length === 4) {
+        completeBoundaryAndLock();
       }
     };
 
-    // Screen tap to drop corner
-    threeCanvas.addEventListener('click', (e) => {
-      if (!isRectLocked) {
-        triggerARCornerAction();
+    function updateStepUI(stepIndex) {
+      const dots = [document.getElementById('dotA'), document.getElementById('dotB'), document.getElementById('dotC'), document.getElementById('dotD')];
+      
+      dots.forEach((dot, i) => {
+        dot.classList.remove('active');
+        if (i < stepIndex + 1) dot.classList.add('completed');
+      });
+
+      if (stepIndex === 0) {
+        dots[1].classList.add('active');
+        document.getElementById('arInstructionText').innerText = "Walk to Corner B & tap shutter";
+      } else if (stepIndex === 1) {
+        dots[2].classList.add('active');
+        let distAB = Math.round(boundaryPoints[0].distanceTo(boundaryPoints[1]) * 100);
+        document.getElementById('arInstructionText').innerText = `Edge A→B (${distAB} cm) locked. Walk to Corner C`;
+      } else if (stepIndex === 2) {
+        dots[3].classList.add('active');
+        let distBC = Math.round(boundaryPoints[1].distanceTo(boundaryPoints[2]) * 100);
+        document.getElementById('arInstructionText').innerText = `Edge B→C (${distBC} cm) locked. Walk to Corner D`;
       }
-    });
-
-    // Update 4-Line 3D Rectangle Geometry & Live Measurement
-    function updateStretchingRectangle(pA, pB, isLocked) {
-      if (rectangleLinesMesh) scene3D.remove(rectangleLinesMesh);
-      if (floorFillMesh) scene3D.remove(floorFillMesh);
-      cornerPinsMeshes.forEach(pin => scene3D.remove(pin));
-      cornerPinsMeshes = [];
-
-      const y = Math.min(pA.y, pB.y) + 0.005; // Slightly elevated to prevent z-fighting
-
-      const minX = Math.min(pA.x, pB.x);
-      const maxX = Math.max(pA.x, pB.x);
-      const minZ = Math.min(pA.z, pB.z);
-      const maxZ = Math.max(pA.z, pB.z);
-
-      const wMeters = Math.max(0.4, maxX - minX);
-      const dMeters = Math.max(0.3, maxZ - minZ);
-
-      measuredWidthCm = Math.round(wMeters * 100);
-      measuredDepthCm = Math.round(dMeters * 100);
-
-      // 4 Rectangle Vertices
-      const c1 = new THREE.Vector3(minX, y, minZ);
-      const c2 = new THREE.Vector3(maxX, y, minZ);
-      const c3 = new THREE.Vector3(maxX, y, maxZ);
-      const c4 = new THREE.Vector3(minX, y, maxZ);
-
-      // 1. 4 Perimeter Lines
-      const linePoints = [c1, c2, c3, c4, c1];
-      const lineGeom = new THREE.BufferGeometry().setFromPoints(linePoints);
-      const lineColor = isLocked ? 0x10b981 : 0xfbbf24; // Emerald green when locked, warm yellow while stretching
-      const lineMat = new THREE.LineBasicMaterial({ color: lineColor, linewidth: 4 });
-      rectangleLinesMesh = new THREE.Line(lineGeom, lineMat);
-      scene3D.add(rectangleLinesMesh);
-
-      // 2. Translucent Floor Plane Fill
-      const planeGeom = new THREE.PlaneGeometry(wMeters, dMeters).rotateX(-Math.PI / 2);
-      const planeMat = new THREE.MeshBasicMaterial({
-        color: isLocked ? 0x10b981 : 0xfbbf24,
-        transparent: true,
-        opacity: isLocked ? 0.12 : 0.06,
-        side: THREE.DoubleSide
-      });
-      floorFillMesh = new THREE.Mesh(planeGeom, planeMat);
-      floorFillMesh.position.set((minX + maxX) / 2, y, (minZ + maxZ) / 2);
-      scene3D.add(floorFillMesh);
-
-      // 3. 4 Corner Pins
-      [c1, c2, c3, c4].forEach((corner, idx) => {
-        const pinGeom = new THREE.SphereGeometry(0.015, 16, 16);
-        const pinMat = new THREE.MeshBasicMaterial({ color: isLocked ? 0x10b981 : 0xffffff });
-        const pin = new THREE.Mesh(pinGeom, pinMat);
-        pin.position.copy(corner);
-        cornerPinsMeshes.push(pin);
-        scene3D.add(pin);
-      });
-
-      // Update live floating badge
-      const dimBadge = document.getElementById('arLiveDim');
-      dimBadge.style.display = 'block';
-      dimBadge.innerText = `${measuredWidthCm} × ${measuredDepthCm} cm`;
-      dimBadge.style.borderColor = isLocked ? '#10b981' : '#fbbf24';
     }
 
+    // Create World Space Pin that NEVER moves with the phone
+    function createPermanentWorldPin(pos, label) {
+      const pinGroup = new THREE.Group();
+      pinGroup.position.copy(pos); // Set absolute world position
+
+      // Sphere elevated 2cm off floor
+      const sphereGeom = new THREE.SphereGeometry(0.016, 24, 24);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+      sphere.position.y = 0.016;
+      pinGroup.add(sphere);
+
+      // Base ring on floor
+      const ringGeom = new THREE.RingGeometry(0.02, 0.026, 32).rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x10b981, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      ring.position.y = 0.002;
+      pinGroup.add(ring);
+
+      pinMeshes.push(pinGroup);
+      scene3D.add(pinGroup); // Added directly to scene, NEVER to camera!
+    }
+
+    // Live stretching line while walking from point N to reticle
+    function updateLiveStretchingLine(fromPos, toPos) {
+      if (activeLineMesh) {
+        scene3D.remove(activeLineMesh);
+        activeLineMesh.geometry.dispose();
+      }
+
+      const y = fromPos.y + 0.005;
+      const points = [
+        new THREE.Vector3(fromPos.x, y, fromPos.z),
+        new THREE.Vector3(toPos.x, y, toPos.z)
+      ];
+
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 4 }); // Warm yellow
+      activeLineMesh = new THREE.Line(geom, mat);
+      scene3D.add(activeLineMesh);
+
+      // Show live stretching distance badge
+      const distCm = Math.round(fromPos.distanceTo(toPos) * 100);
+      const dimBadge = document.getElementById('arLiveDim');
+      dimBadge.style.display = 'block';
+      dimBadge.innerText = `${distCm} cm`;
+      dimBadge.style.borderColor = '#fbbf24';
+    }
+
+    // Render Locked Lines between all placed points
+    function renderLockedBoundaryLines() {
+      if (lockedPerimeterMesh) {
+        scene3D.remove(lockedPerimeterMesh);
+        lockedPerimeterMesh.geometry.dispose();
+      }
+
+      if (boundaryPoints.length < 2) return;
+
+      const y = boundaryPoints[0].y + 0.005;
+      const points = boundaryPoints.map(p => new THREE.Vector3(p.x, y, p.z));
+
+      // If all 4 points placed, close the loop (D -> A)
+      if (boundaryPoints.length === 4) {
+        points.push(new THREE.Vector3(boundaryPoints[0].x, y, boundaryPoints[0].z));
+      }
+
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const lineColor = (boundaryPoints.length === 4) ? 0x10b981 : 0xffffff;
+      const mat = new THREE.LineBasicMaterial({ color: lineColor, linewidth: 5 });
+      lockedPerimeterMesh = new THREE.Line(geom, mat);
+      scene3D.add(lockedPerimeterMesh);
+    }
+
+    // Once Corner D is placed: Complete Space & Launch Snapchat Filters
+    function completeBoundaryAndLock() {
+      isBoundaryComplete = true;
+
+      if (activeLineMesh) {
+        scene3D.remove(activeLineMesh);
+        activeLineMesh = null;
+      }
+
+      // 1. Calculate physical dimensions
+      const p0 = boundaryPoints[0]; // A
+      const p1 = boundaryPoints[1]; // B
+      const p2 = boundaryPoints[2]; // C
+      const p3 = boundaryPoints[3]; // D
+
+      const wMeters = p0.distanceTo(p1);
+      const dMeters = p1.distanceTo(p2);
+
+      measuredWidthCm = Math.max(50, Math.round(wMeters * 100));
+      measuredDepthCm = Math.max(40, Math.round(dMeters * 100));
+
+      // 2. Add Soft Translucent Floor Mesh inside the 4-point polygon
+      const shape = new THREE.Shape();
+      shape.moveTo(p0.x, -p0.z);
+      shape.lineTo(p1.x, -p1.z);
+      shape.lineTo(p2.x, -p2.z);
+      shape.lineTo(p3.x, -p3.z);
+      shape.closePath();
+
+      const polyGeom = new THREE.ShapeGeometry(shape);
+      const polyMat = new THREE.MeshBasicMaterial({
+        color: 0x10b981,
+        transparent: true,
+        opacity: 0.12,
+        side: THREE.DoubleSide
+      });
+      floorPolygonMesh = new THREE.Mesh(polyGeom, polyMat);
+      floorPolygonMesh.rotation.x = Math.PI / 2;
+      floorPolygonMesh.position.y = p0.y + 0.003;
+      scene3D.add(floorPolygonMesh);
+
+      // 3. Update HUD
+      document.getElementById('arInstructionText').innerHTML = `✅ Space Locked: <b style="color:#10b981">${measuredWidthCm} × ${measuredDepthCm} cm</b>`;
+      document.getElementById('arShutterContainer').style.display = 'none';
+
+      const dimBadge = document.getElementById('arLiveDim');
+      dimBadge.style.display = 'block';
+      dimBadge.innerText = `🔒 ${measuredWidthCm} × ${measuredDepthCm} cm`;
+      dimBadge.style.borderColor = '#10b981';
+
+      if (navigator.vibrate) navigator.vibrate([70, 50, 70]);
+
+      // 4. Reveal Snapchat Filter Carousel inside Camera
+      revealSnapchatFilters(measuredWidthCm, measuredDepthCm);
+    }
+
+    // Screen tap fallback
+    threeCanvas.addEventListener('click', () => {
+      if (!isBoundaryComplete) triggerARPointAction();
+    });
+
     // ====================================================
-    // SNAPCHAT-STYLE IN-CAMERA FILTER CAROUSEL LOGIC
+    // SNAPCHAT-STYLE IN-CAMERA FILTER CAROUSEL
     // ====================================================
     function revealSnapchatFilters(wCm, dCm) {
       const carousel = document.getElementById('snapFilterCarousel');
       carousel.style.display = 'flex';
 
-      // Score items with spatial AI engine
       const suggestions = getRecommendations(wCm, dCm, "", "modern");
 
       carousel.innerHTML = suggestions.map((item, idx) => {
@@ -1474,26 +1578,23 @@
         `;
       }).join('');
 
-      // Auto-spawn the top-recommended fitting 3D model!
       const topFitting = suggestions.find(s => s.fits);
       if (topFitting) {
         selectSnapchatFurniture(topFitting.id);
       }
     }
 
-    // Select Furniture from Snapchat Filter
+    // Select Furniture from Snapchat Carousel
     window.selectSnapchatFurniture = function(itemId) {
       const item = catalog.find(i => i.id === itemId);
       if (!item) return;
 
       activeFurnitureItem = item;
 
-      // Update active circle UI
       document.querySelectorAll('.snap-filter-circle').forEach(c => c.classList.remove('active'));
       const activeEl = document.getElementById(`filterCircle_${itemId}`);
       if (activeEl) activeEl.classList.add('active');
 
-      // Update Toolbar
       const toolbar = document.getElementById('arFurnitureToolbar');
       toolbar.style.display = 'flex';
       document.getElementById('tbFurnitureTitle').innerHTML = `${item.icon} ${item.name}`;
@@ -1503,7 +1604,7 @@
       
       document.getElementById('tbFurnitureSub').innerText = isFits 
         ? `Size: ${item.width_cm} × ${item.depth_cm} cm | Walkway Clearance: ${clearance} cm`
-        : `⚠️ Warning: Exceeds measured space (${item.width_cm} × ${item.depth_cm} cm)`;
+        : `⚠️ Warning: Exceeds measured boundary (${item.width_cm} × ${item.depth_cm} cm)`;
 
       const isLocked = lockedSpawnedModels.some(m => m.userData.id === itemId);
       const lockBtn = document.getElementById('btnLockInAR');
@@ -1515,37 +1616,40 @@
         lockBtn.innerHTML = '🔒 Lock in Room';
       }
 
-      // Spawn or replace 3D Furniture in Scene
-      spawn3DFurnitureInRectangle(item);
+      // Spawn 3D Model in Physical World Space inside the boundary
+      spawn3DFurnitureInBoundary(item);
       if (navigator.vibrate) navigator.vibrate(30);
     };
 
-    // Spawn 3D Model precisely inside the measured rectangle
-    function spawn3DFurnitureInRectangle(item) {
+    // Spawn 3D Furniture in Exact World Coordinates inside Polygon A-B-C-D
+    function spawn3DFurnitureInBoundary(item) {
       if (currentSpawnedModel && !lockedSpawnedModels.includes(currentSpawnedModel)) {
         scene3D.remove(currentSpawnedModel);
         currentSpawnedModel = null;
       }
 
-      // Center coordinates of rectangle
-      const minX = Math.min(cornerA.x, cornerB.x);
-      const maxX = Math.max(cornerA.x, cornerB.x);
-      const minZ = Math.min(cornerA.z, cornerB.z);
-      const maxZ = Math.max(cornerA.z, cornerB.z);
-      const centerX = (minX + maxX) / 2;
-      const centerZ = (minZ + maxZ) / 2;
-      const floorY = Math.min(cornerA.y, cornerB.y);
+      if (boundaryPoints.length < 4) return;
 
-      // Create realistic 1:1 true-scale procedural 3D model
+      // True Geometric Center of Polygon {A, B, C, D}
+      const centerX = (boundaryPoints[0].x + boundaryPoints[1].x + boundaryPoints[2].x + boundaryPoints[3].x) / 4;
+      const centerZ = (boundaryPoints[0].z + boundaryPoints[1].z + boundaryPoints[2].z + boundaryPoints[3].z) / 4;
+      const floorY = boundaryPoints[0].y;
+
+      // Orient furniture along edge A -> B
+      const dx = boundaryPoints[1].x - boundaryPoints[0].x;
+      const dz = boundaryPoints[1].z - boundaryPoints[0].z;
+      const rotationAngle = Math.atan2(dx, dz);
+
       const modelGroup = createProcedural3DFurniture(item);
-      modelGroup.position.set(centerX, floorY, centerZ);
+      modelGroup.position.set(centerX, floorY, centerZ); // Set in World Coordinates!
+      modelGroup.rotation.y = rotationAngle;
       modelGroup.userData = { id: item.id, name: item.name };
 
       currentSpawnedModel = modelGroup;
-      scene3D.add(currentSpawnedModel);
+      scene3D.add(currentSpawnedModel); // Added to scene, anchors to room!
     }
 
-    // Procedural 3D Furniture Builder (Instant loading, 1:1 scale)
+    // Procedural 3D Furniture Builder
     function createProcedural3DFurniture(item) {
       const group = new THREE.Group();
       const wM = item.width_cm / 100;
@@ -1565,72 +1669,49 @@
       });
 
       if (item.category === "sofa") {
-        // Base Cushion
         const baseGeom = new THREE.BoxGeometry(wM, hM * 0.45, dM);
         const base = new THREE.Mesh(baseGeom, mainMat);
         base.position.y = hM * 0.35;
         group.add(base);
 
-        // Backrest
         const backGeom = new THREE.BoxGeometry(wM, hM * 0.55, dM * 0.25);
         const back = new THREE.Mesh(backGeom, mainMat);
         back.position.set(0, hM * 0.65, -dM * 0.35);
         group.add(back);
 
-        // 4 Legs
         const legGeom = new THREE.CylinderGeometry(0.02, 0.015, hM * 0.2);
-        [
-          [-wM * 0.45, -dM * 0.4],
-          [wM * 0.45, -dM * 0.4],
-          [-wM * 0.45, dM * 0.4],
-          [wM * 0.45, dM * 0.4]
-        ].forEach(([lx, lz]) => {
+        [[-wM * 0.45, -dM * 0.4], [wM * 0.45, -dM * 0.4], [-wM * 0.45, dM * 0.4], [wM * 0.45, dM * 0.4]].forEach(([lx, lz]) => {
           const leg = new THREE.Mesh(legGeom, legMat);
           leg.position.set(lx, hM * 0.1, lz);
           group.add(leg);
         });
       } 
       else if (item.category === "chair") {
-        // Seat
         const seatGeom = new THREE.BoxGeometry(wM, hM * 0.1, dM);
         const seat = new THREE.Mesh(seatGeom, mainMat);
         seat.position.y = hM * 0.48;
         group.add(seat);
 
-        // Backrest
         const backGeom = new THREE.BoxGeometry(wM * 0.9, hM * 0.5, dM * 0.15);
         const back = new THREE.Mesh(backGeom, mainMat);
         back.position.set(0, hM * 0.72, -dM * 0.4);
         group.add(back);
 
-        // 4 Legs
         const legGeom = new THREE.CylinderGeometry(0.015, 0.01, hM * 0.45);
-        [
-          [-wM * 0.4, -dM * 0.4],
-          [wM * 0.4, -dM * 0.4],
-          [-wM * 0.4, dM * 0.4],
-          [wM * 0.4, dM * 0.4]
-        ].forEach(([lx, lz]) => {
+        [[-wM * 0.4, -dM * 0.4], [wM * 0.4, -dM * 0.4], [-wM * 0.4, dM * 0.4], [wM * 0.4, dM * 0.4]].forEach(([lx, lz]) => {
           const leg = new THREE.Mesh(legGeom, legMat);
           leg.position.set(lx, hM * 0.22, lz);
           group.add(leg);
         });
       } 
       else if (item.category === "desk") {
-        // Tabletop
         const topGeom = new THREE.BoxGeometry(wM, 0.04, dM);
         const top = new THREE.Mesh(topGeom, mainMat);
         top.position.y = hM;
         group.add(top);
 
-        // Steel Frame Legs
         const legGeom = new THREE.BoxGeometry(0.03, hM, 0.03);
-        [
-          [-wM * 0.45, -dM * 0.4],
-          [wM * 0.45, -dM * 0.4],
-          [-wM * 0.45, dM * 0.4],
-          [wM * 0.45, dM * 0.4]
-        ].forEach(([lx, lz]) => {
+        [[-wM * 0.45, -dM * 0.4], [wM * 0.45, -dM * 0.4], [-wM * 0.45, dM * 0.4], [wM * 0.45, dM * 0.4]].forEach(([lx, lz]) => {
           const leg = new THREE.Mesh(legGeom, legMat);
           leg.position.set(lx, hM * 0.5, lz);
           group.add(leg);
@@ -1640,7 +1721,7 @@
       return group;
     }
 
-    // Toggle Lock Furniture in Real World AR Space
+    // Toggle Lock Furniture in Physical Room
     window.toggleLockActiveARFurniture = function() {
       if (!currentSpawnedModel || !activeFurnitureItem) return;
 
@@ -1648,13 +1729,11 @@
       const lockBtn = document.getElementById('btnLockInAR');
 
       if (idx >= 0) {
-        // Unlock
         lockedSpawnedModels.splice(idx, 1);
         toggleLock(activeFurnitureItem.id, activeFurnitureItem.name);
         lockBtn.classList.remove('locked');
         lockBtn.innerHTML = '🔒 Lock in Room';
       } else {
-        // Lock permanently
         lockedSpawnedModels.push(currentSpawnedModel);
         toggleLock(activeFurnitureItem.id, activeFurnitureItem.name);
         lockBtn.classList.add('locked');
@@ -1662,7 +1741,6 @@
 
         if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
 
-        // Sync inputs
         document.getElementById('width').value = measuredWidthCm;
         document.getElementById('depth').value = measuredDepthCm;
         document.getElementById('recommendForm').dispatchEvent(new Event('submit'));
@@ -1670,27 +1748,34 @@
     };
 
     window.resetARMeasurement = function() {
-      isMeasuringRect = false;
-      isRectLocked = false;
-      cornerA = null;
-      cornerB = null;
+      boundaryPoints = [];
+      isBoundaryComplete = false;
 
-      if (rectangleLinesMesh) scene3D.remove(rectangleLinesMesh);
-      if (floorFillMesh) scene3D.remove(floorFillMesh);
-      cornerPinsMeshes.forEach(pin => scene3D.remove(pin));
-      cornerPinsMeshes = [];
+      if (activeLineMesh) { scene3D.remove(activeLineMesh); activeLineMesh = null; }
+      if (lockedPerimeterMesh) { scene3D.remove(lockedPerimeterMesh); lockedPerimeterMesh = null; }
+      if (floorPolygonMesh) { scene3D.remove(floorPolygonMesh); floorPolygonMesh = null; }
+
+      pinMeshes.forEach(p => scene3D.remove(p));
+      pinMeshes = [];
 
       if (currentSpawnedModel && !lockedSpawnedModels.includes(currentSpawnedModel)) {
         scene3D.remove(currentSpawnedModel);
         currentSpawnedModel = null;
       }
 
+      // Reset Step Indicators
+      const dots = [document.getElementById('dotA'), document.getElementById('dotB'), document.getElementById('dotC'), document.getElementById('dotD')];
+      dots.forEach((dot, i) => {
+        dot.classList.remove('active', 'completed');
+        if (i === 0) dot.classList.add('active');
+      });
+
       document.getElementById('arShutterContainer').style.display = 'flex';
       document.getElementById('arFurnitureToolbar').style.display = 'none';
       document.getElementById('snapFilterCarousel').style.display = 'none';
       document.getElementById('arLiveDim').style.display = 'none';
       document.getElementById('btnArReset').style.display = 'none';
-      document.getElementById('arInstructionText').innerText = "Aim at floor & tap shutter (Corner 1)";
+      document.getElementById('arInstructionText').innerText = "Aim at floor & tap shutter for Point A";
     };
 
     window.closeARMeasureExperience = function() {
